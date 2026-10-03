@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { validate } from './validation.js';
+import { registerPlayerRoutes } from './jogadores.js';
+  import { registerSquadRoutes } from './elenco.js';
 
 export function createApp(pool) {
   const app = express();
@@ -80,8 +82,12 @@ export function createApp(pool) {
       } catch (error) { next(error); }
     });
   }
+
+    registerPlayerRoutes(app, pool);
+    registerSquadRoutes(app, pool);
+
   app.use((error, req, res, next) => {
-    if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ erro: req.path.includes('campeonatos') ? 'Já existe um campeonato com esse nome, esporte e data inicial.' : 'Já existe um time com esse nome.' });
+    if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ erro: req.path.includes('campeonatos') ? 'Já existe um campeonato com esse nome, esporte e data inicial.' : req.path.includes('jogadores') ? 'Já existe um jogador cadastrado com esse documento.' : 'Já existe um time com esse nome.' });    
     if (error.code === 'ER_ROW_IS_REFERENCED_2') return res.status(409).json({ erro: 'Este cadastro possui vínculos e não pode ser excluído.' });
     if (error.code === 'ER_NO_REFERENCED_ROW_2') return res.status(400).json({ erro: 'O esporte selecionado não existe.' });
     if (error.type === 'entity.parse.failed') return res.status(400).json({ erro: 'Dados JSON inválidos.' });
