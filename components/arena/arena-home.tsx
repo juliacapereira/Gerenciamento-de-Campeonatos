@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowDownRight,
   ArrowRight,
@@ -18,11 +18,24 @@ import {
   X,
 } from 'lucide-react'
 
-const championships = [
-  { name: 'Copa Regional 2026', sport: 'Futebol', period: '12 abr — 28 jun, 2026', teams: '8 equipes', status: 'Em andamento', color: 'green', mark: 'CR' },
-  { name: 'Liga Municipal de Futsal', sport: 'Futsal', period: '20 abr — 18 jul, 2026', teams: '12 equipes', status: 'Em andamento', color: 'blue', mark: 'LM' },
-  { name: 'Copa Universitária', sport: 'Futebol', period: 'Inscrições até 30 mai', teams: '16 equipes', status: 'Inscrições abertas', color: 'orange', mark: 'CU' },
-]
+type HomeChampionship = { id_campeonato: number; nome: string; esporte: string; data_inicial: string; data_fim: string; status: string }
+type HomeTeam = { id_time: number; nome: string; nome_abreviado?: string; esporte: string; cidade?: string }
+const statusLabels: Record<string, string> = { PLANEJADO: 'Planejado', INSCRICOES: 'Inscrições abertas', EM_ANDAMENTO: 'Em andamento', ENCERRADO: 'Encerrado' }
+function useHomeRecords<T>(kind: string) {
+  const [records, setRecords] = useState<T[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    setLoading(true); setError(false)
+    fetch(`/api/${kind}`, { cache: 'no-store', signal: controller.signal })
+      .then(response => { if (!response.ok) throw new Error('API indisponível'); return response.json() })
+      .then(data => { setRecords(data); setLoading(false) })
+      .catch(() => { if (!controller.signal.aborted) { setError(true); setLoading(false) } })
+    return () => controller.abort()
+  }, [kind])
+  return { records, loading, error }
+}
 
 const matches = [
   { day: 'HOJE', date: '24 MAI', time: '19:30', home: 'Atlético Central', away: 'União FC', homeMark: 'AC', awayMark: 'UF', place: 'Estádio Municipal', tournament: 'Copa Regional 2026' },
@@ -51,11 +64,6 @@ const scorers = [
   { name: 'Pedro Santos', team: 'Vila Nova', goals: 6, initials: 'PS', color: 'blue' },
 ]
 
-const teams = [
-  { name: 'Atlético Central', wins: 5, goals: 18, rate: '88%', mark: 'AC' },
-  { name: 'União FC', wins: 4, goals: 14, rate: '72%', mark: 'UF' },
-  { name: 'Vila Nova', wins: 3, goals: 12, rate: '61%', mark: 'VN' },
-]
 
 function SectionHeading({ eyebrow, title, href, linkLabel = 'Ver todos' }: { eyebrow: string; title: string; href: string; linkLabel?: string }) {
   return (
@@ -75,7 +83,7 @@ function TeamMark({ mark, className = '' }: { mark: string; className?: string }
   return <div aria-label={`Escudo ${mark}`} className={`team-mark ${className}`}><Shield aria-hidden="true" className="absolute size-[78%] stroke-[1.1] opacity-25" /><span className="relative text-[10px] font-black tracking-tight">{mark}</span></div>
 }
 
-function Header() {
+export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const links = [['Início', '/'], ['Campeonatos', '/campeonatos'], ['Jogos', '/jogos'], ['Classificação', '/classificacao'], ['Times', '/times'], ['Jogadores', '/jogadores']]
   return (
@@ -90,7 +98,7 @@ function Header() {
         </nav>
         <div className="hidden items-center gap-3 lg:flex">
           <Link href="/#buscar" aria-label="Pesquisar" className="flex size-10 items-center justify-center rounded-full text-[#4f5c51] transition hover:bg-[#f0f0e9]"><Search className="size-[18px]" /></Link>
-          <Link href="/admin/login" className="rounded-lg bg-[#1b392c] px-4 py-[11px] text-[12px] font-bold text-white transition hover:bg-[#2c523d]">Área do administrador <ArrowUpRight className="ml-1 inline size-3.5" /></Link>
+          <Link href="/campeonatos/novo" className="rounded-lg bg-[#1b392c] px-4 py-[11px] text-[12px] font-bold text-white transition hover:bg-[#2c523d]">Criar campeonato <ArrowUpRight className="ml-1 inline size-3.5" /></Link>
         </div>
         <button onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'} aria-expanded={menuOpen} className="flex size-10 items-center justify-center rounded-lg text-[#263b2f] hover:bg-[#f0f0e9] lg:hidden">
           {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -99,7 +107,7 @@ function Header() {
       {menuOpen && <nav aria-label="Navegação móvel" className="border-t border-[#e9e9e1] bg-[#fbfbf8] px-5 py-4 lg:hidden">
         <div className="mx-auto flex max-w-[1240px] flex-col gap-1">
           {links.map(([label, href]) => <Link onClick={() => setMenuOpen(false)} key={label} href={href} className="rounded-lg px-3 py-3 text-sm font-semibold text-[#3e4c40] hover:bg-[#f0f0e9]">{label}</Link>)}
-          <Link onClick={() => setMenuOpen(false)} href="/admin/login" className="mt-2 rounded-lg bg-[#1b392c] px-4 py-3 text-center text-sm font-bold text-white">Área do administrador</Link>
+          <Link onClick={() => setMenuOpen(false)} href="/campeonatos/novo" className="mt-2 rounded-lg bg-[#1b392c] px-4 py-3 text-center text-sm font-bold text-white">Criar campeonato</Link>
         </div>
       </nav>}
     </header>
@@ -137,24 +145,18 @@ function HeroSection() {
   </section>
 }
 
-function ChampionshipCard({ item }: { item: (typeof championships)[number] }) {
+function ChampionshipCard({ item }: { item: HomeChampionship }) {
+  const date = (value: string) => new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR')
   return <article className="group overflow-hidden rounded-xl border border-[#e8e8df] bg-white transition duration-200 hover:-translate-y-1 hover:border-[#d2d8bf] hover:shadow-[0_12px_30px_-18px_rgba(31,51,36,.25)]">
-    <div className={`champ-banner champ-${item.color} flex h-[116px] items-center justify-between px-5`}>
-      <div className="flex flex-col gap-2"><span className="w-fit rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.1em] text-white backdrop-blur">{item.sport}</span><span className="text-[10px] font-semibold text-white/75">TEMPORADA 2026</span></div>
-      <div className="champ-emblem">{item.mark}</div>
-    </div>
-    <div className="p-5">
-      <div className="flex items-start justify-between gap-2"><h3 className="font-display text-[19px] font-bold leading-tight tracking-[-.035em] text-[#20372b]">{item.name}</h3><span className={`status-dot ${item.status === 'Inscrições abertas' ? 'status-open' : ''}`}>{item.status}</span></div>
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-medium text-[#81867d]"><span className="flex items-center gap-1.5"><CalendarDays className="size-3.5" />{item.period}</span><span className="flex items-center gap-1.5"><Users className="size-3.5" />{item.teams}</span></div>
-      <Link href="/campeonatos" className="mt-5 flex items-center justify-between border-t border-[#eee] pt-4 text-[12px] font-bold text-[#37493b] transition group-hover:text-[#71892e]">Ver campeonato <ArrowRight className="size-4 transition group-hover:translate-x-1" /></Link>
-    </div>
+    <div className="champ-banner champ-green flex h-[116px] items-center justify-between px-5"><div className="flex flex-col gap-2"><span className="w-fit rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.1em] text-white">{item.esporte}</span><span className="text-[10px] font-semibold text-white/75">TEMPORADA {item.data_inicial.slice(0, 4)}</span></div><div className="champ-emblem">{item.nome.split(' ').map(word => word[0]).join('').slice(0, 3).toUpperCase()}</div></div>
+    <div className="p-5"><h3 className="font-display break-words text-[19px] font-bold leading-tight tracking-[-.035em] text-[#20372b]"><Link href={`/campeonatos/${item.id_campeonato}`}>{item.nome}</Link></h3><span className={`status-dot mt-3 ${item.status === 'INSCRICOES' ? 'status-open' : ''}`}>{statusLabels[item.status]}</span><p className="mt-4 flex items-center gap-1.5 text-[11px] text-[#81867d]"><CalendarDays className="size-3.5 shrink-0" />{date(item.data_inicial)} — {date(item.data_fim)}</p><Link href={`/campeonatos/${item.id_campeonato}`} className="mt-5 flex items-center justify-between border-t border-[#eee] pt-4 text-[12px] font-bold text-[#37493b]">Ver campeonato<ArrowRight className="size-4" /></Link></div>
   </article>
 }
 
 function ChampionshipsSection() {
-  return <section className="section-wrap pt-20 sm:pt-24">
-    <SectionHeading eyebrow="Escolha sua torcida" title="Campeonatos em destaque" href="/campeonatos" linkLabel="Todos os campeonatos" />
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{championships.map((item) => <ChampionshipCard key={item.name} item={item} />)}</div>
+  const { records, loading, error } = useHomeRecords<HomeChampionship>('campeonatos')
+  return <section className="section-wrap pt-20 sm:pt-24"><SectionHeading eyebrow="Escolha sua torcida" title="Campeonatos em destaque" href="/campeonatos" linkLabel="Todos os campeonatos" />
+    {loading ? <p role="status" className="arena-empty">Carregando campeonatos...</p> : records.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{records.slice(0, 3).map(item => <ChampionshipCard key={item.id_campeonato} item={item} />)}</div> : <div className="arena-empty"><p>{error ? 'Não foi possível carregar os campeonatos.' : 'A próxima competição da comunidade começa com você.'}</p><Link className="arena-primary mt-4" href={error ? '/campeonatos' : '/campeonatos/novo'}>{error ? 'Abrir campeonatos' : 'Criar campeonato'}<ArrowRight className="size-4" /></Link></div>}
   </section>
 }
 
@@ -221,13 +223,9 @@ function PlayerRanking() {
 }
 
 function TeamHighlights() {
-  return <section className="rounded-xl border border-[#e7e8df] bg-white p-5 sm:p-6">
-    <div className="mb-5 flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#8c9186]">Destaques da rodada</p><h3 className="mt-1 font-display text-xl font-bold tracking-[-.04em] text-[#20372b]">Times em alta</h3></div><Link href="/times" aria-label="Ver todos os times" className="flex size-9 items-center justify-center rounded-full bg-[#f1f2eb] text-[#4e6048] transition hover:bg-[#e7ebda]"><ArrowUpRight className="size-4" /></Link></div>
-    <div className="flex flex-col">{teams.map((team, index) => <div key={team.name} className="flex items-center gap-3 border-t border-[#eff0e9] py-3 first:border-0 first:pt-0 last:pb-0">
-      <span className="w-5 text-center font-display text-lg font-bold text-[#a7aaa1]">{index + 1}<sup className="text-[9px]">º</sup></span><TeamMark mark={team.mark} className="size-9" />
-      <div className="min-w-0 flex-1"><p className="truncate text-[12px] font-bold text-[#344438]">{team.name}</p><p className="mt-0.5 text-[10px] text-[#858a80]">{team.wins} vitórias <span className="px-1">·</span> {team.goals} gols</p></div>
-      <span className="rounded-full bg-[#edf2df] px-2.5 py-1 text-[10px] font-extrabold text-[#607a2c]">{team.rate}</span>
-    </div>)}</div>
+  const { records, loading, error } = useHomeRecords<HomeTeam>('times')
+  return <section className="rounded-xl border border-[#e7e8df] bg-white p-5 sm:p-6"><div className="mb-5 flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#8c9186]">Quem entra em campo</p><h3 className="mt-1 font-display text-xl font-bold tracking-[-.04em] text-[#20372b]">Times da comunidade</h3></div><Link href="/times" aria-label="Ver todos os times" className="flex size-9 items-center justify-center rounded-full bg-[#f1f2eb] text-[#4e6048]"><ArrowUpRight className="size-4" /></Link></div>
+    {loading ? <p role="status" className="text-xs text-[#858a80]">Carregando times...</p> : records.length ? <div>{records.slice(0, 3).map(team => <Link href={`/times/${team.id_time}`} key={team.id_time} className="flex items-center gap-3 border-t border-[#eff0e9] py-3 first:border-0 first:pt-0 last:pb-0"><TeamMark mark={(team.nome_abreviado || team.nome.split(' ').map(word => word[0]).join('')).slice(0, 3).toUpperCase()} /><div className="min-w-0 flex-1"><p className="truncate text-[12px] font-bold text-[#344438]">{team.nome}</p><p className="mt-0.5 truncate text-[10px] text-[#858a80]">{team.esporte}{team.cidade ? ` · ${team.cidade}` : ''}</p></div><ArrowUpRight className="size-4 shrink-0 text-[#829c38]" /></Link>)}</div> : <p className="text-xs leading-6 text-[#858a80]">{error ? 'Não foi possível carregar os times.' : 'Cadastre o primeiro time da comunidade.'} <Link className="font-bold underline" href="/times">Abrir times</Link></p>}
   </section>
 }
 
@@ -236,17 +234,17 @@ function HighlightsSection() {
 }
 
 const searchEntries = [
-  { type: 'TIMES', name: 'Atlético Central', meta: 'Futebol · Copa Regional 2026', href: '/times' },
-  { type: 'TIMES', name: 'União FC', meta: 'Futebol · Copa Regional 2026', href: '/times' },
   { type: 'JOGADORES', name: 'Lucas Mendes', meta: 'Atlético Central · 9 gols', href: '/jogadores' },
   { type: 'JOGADORES', name: 'Rafael Silva', meta: 'União FC · 7 gols', href: '/jogadores' },
   { type: 'JOGADORES', name: 'Pedro Santos', meta: 'Vila Nova · 6 gols', href: '/jogadores' },
 ]
 
 function SearchSection() {
+  const { records } = useHomeRecords<HomeTeam>('times')
+  const entries = useMemo(() => [...records.map(team => ({ type: 'TIMES', name: team.nome, meta: `${team.esporte}${team.cidade ? ` · ${team.cidade}` : ''}`, href: `/times/${team.id_time}` })), ...searchEntries], [records])
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState(false)
-  const filtered = useMemo(() => query.trim() ? searchEntries.filter((entry) => `${entry.name} ${entry.meta}`.toLowerCase().includes(query.toLowerCase())) : searchEntries, [query])
+  const filtered = useMemo(() => query.trim() ? entries.filter((entry) => `${entry.name} ${entry.meta}`.toLowerCase().includes(query.toLowerCase())) : entries, [query, entries])
   const groups = ['TIMES', 'JOGADORES']
   return <section id="buscar" className="section-wrap pt-16 sm:pt-20">
     <div className="search-panel relative overflow-visible rounded-2xl bg-[#e9eddf] px-5 py-9 sm:px-10 sm:py-11">
@@ -265,13 +263,13 @@ function SearchSection() {
 function OrganizerCTA() {
   return <section className="section-wrap pb-16 pt-16 sm:pb-20 sm:pt-20">
     <div className="organizer-panel relative overflow-hidden rounded-2xl bg-[#19382b] px-6 py-9 sm:px-10 sm:py-10 lg:px-12">
-      <div className="relative z-10 max-w-[650px]"><span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.16em] text-[#d7f36a]"><Trophy className="size-3.5"/> Para quem faz acontecer</span><h2 className="mt-4 max-w-[550px] font-display text-[29px] font-bold leading-[1.05] tracking-[-.045em] text-white sm:text-[37px]">Organize seu campeonato de forma simples</h2><p className="mt-3 max-w-[520px] text-[13px] leading-6 text-white/65">Cadastre equipes, jogadores, partidas, resultados e mantenha todos acompanhando a competição em um só lugar.</p><Link href="/admin/login" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[12px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]">Acessar área administrativa <ArrowRight className="size-4"/></Link></div>
+      <div className="relative z-10 max-w-[650px]"><span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.16em] text-[#d7f36a]"><Trophy className="size-3.5"/> Para quem faz acontecer</span><h2 className="mt-4 max-w-[550px] font-display text-[29px] font-bold leading-[1.05] tracking-[-.045em] text-white sm:text-[37px]">Organize seu campeonato de forma simples</h2><p className="mt-3 max-w-[520px] text-[13px] leading-6 text-white/65">Cadastre equipes, jogadores, partidas, resultados e mantenha todos acompanhando a competição em um só lugar.</p><Link href="/campeonatos/novo" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[12px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]">Criar meu campeonato <ArrowRight className="size-4"/></Link></div>
       <div aria-hidden="true" className="cta-decoration"><div className="cta-ring cta-ring-one"/><div className="cta-ring cta-ring-two"/><div className="cta-ring cta-ring-three"/><div className="cta-center"><Trophy className="size-10 text-[#d7f36a]"/></div></div>
     </div>
   </section>
 }
 
-function Footer() {
+export function Footer() {
   return <footer className="border-t border-[#e6e7df] bg-[#f6f6f1]">
     <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-10 sm:grid-cols-[1.4fr_.75fr_.8fr] sm:px-8 sm:py-12">
       <div><Link href="/" className="inline-flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-[10px] bg-[#18372b] text-[#d7f36a]"><Trophy className="size-4"/></span><span className="text-[16px] font-extrabold tracking-[-.06em] text-[#193328]">arena<span className="text-[#829c38]">local</span></span></Link><p className="mt-3 max-w-[300px] text-[11px] leading-5 text-[#7d8278]">O ponto de encontro de quem vive o esporte na sua comunidade.</p></div>

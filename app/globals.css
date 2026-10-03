@@ -171,3 +171,17 @@ body { margin: 0; background: #fbfbf8; color: #21372b; font-family: Arial, Helve
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.arena-input { display: block; width: 100%; min-height: 44px; border: 1px solid #dfe3d6; border-radius: 9px; background: #fbfcf8; padding: 11px 13px; color: #21372b; font: inherit; font-size: 14px; }
+.arena-input:focus { outline: 2px solid #829c38; outline-offset: 2px; }
+.arena-input::placeholder { color: #92998b; }
+.arena-primary, .arena-secondary { display: inline-flex; justify-content: center; align-items: center; gap: 8px; border-radius: 9px; padding: 12px 18px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.arena-primary { background: #19382b; color: #d7f36a; }
+.arena-primary:hover { background: #2c523d; }
+.arena-secondary { border: 1px solid #dfe3d6; color: #536548; background: #fff; }
+.arena-secondary:hover { background: #f0f3e9; }
+.arena-primary:disabled { opacity: .5; cursor: not-allowed; }
+.arena-primary:focus-visible, .arena-secondary:focus-visible { outline: 2px solid #829c38; outline-offset: 3px; }
+.arena-empty { border: 1px dashed #d5dcc8; border-radius: 16px; background: #f5f7ef; padding: 48px 24px; text-align: center; }
+.arena-dialog { position: fixed; inset: 0; margin: auto; width: min(480px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; border: 1px solid #e5e7dd; border-radius: 16px; background: #fff; color: #21372b; box-shadow: 0 24px 70px #19382b33; }
+.arena-dialog::backdrop { background: #10271bb3; backdrop-filter: blur(3px); }
