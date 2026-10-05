@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, IdCard, Pencil, Plus
 import { Footer, Header } from './arena-home'
 import { request } from './management'
 
-type Player = { id_jogador: number; nome: string; documento: string; data_nascimento?: string | null; foto_url?: string | null }
+type Player = { id_jogador: number; nome: string; documento: string; data_nascimento?: string | null; foto_url?: string | null;posicao?: string | null; }
 
 // As páginas são públicas, então o documento (dado pessoal) só aparece por inteiro no formulário de edição.
 const maskDocument = (value: string) => (value.length > 3 ? '•'.repeat(Math.min(value.length - 3, 8)) + value.slice(-3) : '•••')
@@ -163,6 +163,25 @@ export function PlayerForm({ id }: { id?: string }) {
                 <Field name="data_nascimento" label="Data de nascimento"><input className="arena-input" type="date" id="data_nascimento" name="data_nascimento" defaultValue={player?.data_nascimento?.slice(0, 10) || ''} min="1900-01-01" max={today} /></Field>
                 <Field name="foto_url" label="Link da foto"><input className="arena-input" type="url" id="foto_url" name="foto_url" defaultValue={player?.foto_url || ''} maxLength={500} placeholder="https://exemplo.com/foto.jpg" /></Field>
               </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+               <Field name="posicao" label="Posição principal" required>
+               <select 
+                className="arena-input" 
+                 id="posicao" 
+                name="posicao" 
+                defaultValue={player?.posicao || ''} 
+                required
+                  >
+                    <option value="" disabled>Selecione a posição</option>
+                    <option value="Goleiro">Goleiro</option>
+                    <option value="Zagueiro">Zagueiro</option>
+                    <option value="Lateral">Lateral</option>
+                    <option value="Volante">Volante</option>
+                    <option value="Meia">Meia</option>
+                    <option value="Atacante">Atacante</option>
+                  </select>
+                </Field>
+              </div>
               {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-800">{error}</p>}
               <div className="mt-2 flex flex-wrap items-center justify-end gap-3 border-t border-[#e5e7dd] pt-5">
                 <Link className="arena-secondary" href={id ? `/jogadores/${id}` : '/jogadores'}>Cancelar</Link>
@@ -234,6 +253,7 @@ export function PlayerDetail({ id }: { id: string }) {
               <dl className="mt-6 grid gap-5 sm:grid-cols-2">
                 <div><dt className="flex items-center gap-2 text-xs text-[#7d8378]"><IdCard className="size-4" />Documento</dt><dd className="mt-1 font-semibold">{maskDocument(player.documento)}</dd></div>
                 <div><dt className="flex items-center gap-2 text-xs text-[#7d8378]"><CalendarDays className="size-4" />Data de nascimento</dt><dd className="mt-1 font-semibold">{formatDate(player.data_nascimento) || 'Não informada'}</dd></div>
+                <div><dt className="flex items-center gap-2 text-xs text-[#7d8378]"><Users className="size-4" />Posição</dt><dd className="mt-1 font-semibold">{player.posicao || 'Não informada'}</dd></div>
               </dl>
               <p className="mt-6 border-t border-[#e5e7dd] pt-4 text-xs text-[#7d8378]">O documento é exibido parcialmente por privacidade. Para ver ou alterar, abra a edição.</p>
             </section>

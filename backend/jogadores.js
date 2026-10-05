@@ -3,8 +3,8 @@
 // erros são repassados para o tratador de erros no final do createApp.
 import { validate } from './validation.js';
 
-const fields = ['nome', 'data_nascimento', 'documento', 'foto_url'];
-const select = "SELECT id_jogador, nome, DATE_FORMAT(data_nascimento, '%Y-%m-%d') AS data_nascimento, documento, foto_url FROM jogador";
+const fields = ['nome', 'data_nascimento', 'documento', 'foto_url', 'posicao'];
+const select = "SELECT id_jogador, nome, DATE_FORMAT(data_nascimento, '%Y-%m-%d') AS data_nascimento, documento, foto_url, posicao FROM jogador";
 const squads = 'SELECT t.id_time, t.nome AS time, e.nome AS esporte, el.posicao, el.numero_camisa FROM elenco el JOIN time t ON t.id_time = el.id_time LEFT JOIN esporte e ON e.id_esporte = t.id_esporte WHERE el.id_jogador = ? ORDER BY t.nome';
 const validId = value => /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value));
 const clean = body => fields.map(field => typeof body[field] === 'string' ? body[field].trim() || null : body[field] ?? null);

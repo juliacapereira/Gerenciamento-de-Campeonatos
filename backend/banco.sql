@@ -110,6 +110,8 @@ CREATE TABLE IF NOT EXISTS jogador (
 
     foto_url VARCHAR(500),
 
+    posicao VARCHAR(80),
+
     criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
