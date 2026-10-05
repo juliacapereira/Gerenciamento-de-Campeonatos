@@ -13,3 +13,6 @@ __v0_jsx-dev-runtime.ts
 node_modules/
 .env
 backend/.env
+
+.next/
+next-env.d.ts
