@@ -6,13 +6,14 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, IdCard, Pencil, Plus, Search, Trash2, Users } from 'lucide-react'
 import { Footer, Header } from './arena-home'
-import { request } from './management'
+import { request } from './api'
+import { Avatar, PositionChips } from './shared'
 
-type Player = { id_jogador: number; nome: string; documento: string; data_nascimento?: string | null; foto_url?: string | null }
+type PlayerTeam = { id_time: number; time: string; esporte?: string | null; posicao?: string | null; numero_camisa?: number | null }
+type Player = { id_jogador: number; nome: string; documento: string; data_nascimento?: string | null; foto_url?: string | null; times?: PlayerTeam[] }
 
 // As páginas são públicas, então o documento (dado pessoal) só aparece por inteiro no formulário de edição.
 const maskDocument = (value: string) => (value.length > 3 ? '•'.repeat(Math.min(value.length - 3, 8)) + value.slice(-3) : '•••')
-const initials = (name: string) => name.split(' ').filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase()
 const formatDate = (date?: string | null) => (date ? new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR') : '')
 
 function Shell({ children }: { children: ReactNode }) {
@@ -34,14 +35,6 @@ function Banner({ title }: { title: string }) {
   )
 }
 
-function Avatar({ player, className = 'size-14' }: { player: Pick<Player, 'nome' | 'foto_url'>; className?: string }) {
-  const [failed, setFailed] = useState(false)
-  if (player.foto_url && !failed) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={player.foto_url} alt={`Foto de ${player.nome}`} onError={() => setFailed(true)} className={`${className} shrink-0 rounded-full border border-[#e5e7dd] bg-[#f1f2eb] object-cover`} />
-  }
-  return <div aria-hidden="true" className={`${className} flex shrink-0 items-center justify-center rounded-full bg-[#eef1e5] text-sm font-extrabold text-[#5b7425]`}>{initials(player.nome) || '?'}</div>
-}
 
 function Field({ name, label, required = false, children }: { name: string; label: string; required?: boolean; children: ReactNode }) {
   return <div><label htmlFor={name} className="mb-2 block text-xs font-bold">{label}{required && <span className="text-[#829c38]"> *</span>}</label>{children}</div>
@@ -236,6 +229,22 @@ export function PlayerDetail({ id }: { id: string }) {
                 <div><dt className="flex items-center gap-2 text-xs text-[#7d8378]"><CalendarDays className="size-4" />Data de nascimento</dt><dd className="mt-1 font-semibold">{formatDate(player.data_nascimento) || 'Não informada'}</dd></div>
               </dl>
               <p className="mt-6 border-t border-[#e5e7dd] pt-4 text-xs text-[#7d8378]">O documento é exibido parcialmente por privacidade. Para ver ou alterar, abra a edição.</p>
+            </section>
+            <section aria-labelledby="times-title" className="mt-6 max-w-3xl rounded-2xl border border-[#e5e7dd] bg-white p-6 sm:p-8">
+              <h2 id="times-title" className="font-display text-2xl font-bold">Times e posições</h2>
+              {player.times?.length ? (
+                <ul className="mt-5 divide-y divide-[#e5e7dd]">
+                  {player.times.map(team => (
+                    <li key={team.id_time} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                      <div>
+                        <Link className="font-semibold hover:text-[#789339]" href={`/times/${team.id_time}`}>{team.time}</Link>
+                        <p className="mt-0.5 text-xs text-[#7d8378]">{team.esporte || 'Esporte não informado'}{team.numero_camisa != null ? ` · camisa ${team.numero_camisa}` : ''}</p>
+                      </div>
+                      <PositionChips value={team.posicao} />
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="mt-4 text-sm text-[#7d8378]">Este jogador ainda não faz parte de nenhum time. Adicione-o ao elenco pela página de um time.</p>}
             </section>
             <dialog ref={dialog} aria-labelledby="delete-title" aria-describedby="delete-description" className="arena-dialog" onCancel={event => { if (deleting) event.preventDefault() }}>
               <div className="p-6 sm:p-8">
