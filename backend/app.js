@@ -4,6 +4,7 @@ import { validate } from './validation.js';
 import { registerPlayerRoutes } from './jogadores.js';
   import { registerSquadRoutes } from './elenco.js';
 import { registerEntryRoutes } from './inscricoes.js';
+import { registerSportRoutes } from './esportes.js';
 
 export function createApp(pool, { adminRouter } = {}) {
   const app = express();
@@ -11,7 +12,7 @@ export function createApp(pool, { adminRouter } = {}) {
   app.use(express.json({ limit: '32kb' }));
   app.get('/', (req, res) => res.json({ mensagem: 'API funcionando' }));
   app.get('/api/esportes', async (req, res, next) => {
-    try { const [rows] = await pool.query('SELECT id_esporte, nome FROM esporte ORDER BY nome'); res.json(rows); }
+    try { const [rows] = await pool.query('SELECT id_esporte, nome, descricao FROM esporte ORDER BY nome'); res.json(rows); }
     catch (error) { next(error); }
   });
   for (const kind of ['campeonatos', 'times']) {
@@ -86,8 +87,9 @@ export function createApp(pool, { adminRouter } = {}) {
 
     if (adminRouter) app.use('/api/admin', adminRouter);
   registerPlayerRoutes(app, pool);
-    registerSquadRoutes(app, pool);
+  registerSquadRoutes(app, pool);
   registerEntryRoutes(app, pool);
+  registerSportRoutes(app, pool);
 
   app.use((error, req, res, next) => {
     if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ erro: req.path.includes('campeonatos') ? 'Já existe um campeonato com esse nome, esporte e data inicial.' : req.path.includes('jogadores') ? 'Já existe um jogador cadastrado com esse documento.' : 'Já existe um time com esse nome.' });    

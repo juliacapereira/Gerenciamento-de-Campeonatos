@@ -85,7 +85,7 @@ function TeamMark({ mark, className = '' }: { mark: string; className?: string }
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const links = [['Início', '/'], ['Campeonatos', '/campeonatos'], ['Jogos', '/jogos'], ['Classificação', '/classificacao'], ['Times', '/times'], ['Jogadores', '/jogadores']]
+  const links = [['Início', '/'], ['Campeonatos', '/campeonatos'], ['Jogos', '/jogos'], ['Classificação', '/classificacao'], ['Times', '/times'], ['Jogadores', '/jogadores'], ['Esportes', '/esportes']]
   return (
     <header className="sticky top-0 z-50 border-b border-[#e9e9e1] bg-[#fbfbf8]/95 backdrop-blur-md">
       <div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-5 lg:px-8">

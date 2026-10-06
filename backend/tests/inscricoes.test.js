@@ -12,7 +12,7 @@ const path = '/api/campeonatos/:id/times';
 
 test('inscreve time no campeonato com SQL parametrizado', async () => {
   const calls = [];
-  const app = createApp({ execute: async (sql, values) => { calls.push({ sql, values }); return sql.startsWith('INSERT') ? [{ insertId: 3 }] : [[{ id: 1 }]]; } });
+  const app = createApp({ execute: async (sql, values) => { calls.push({ sql, values }); return sql.startsWith('INSERT') ? [{ insertId: 3 }] : [[{ id: 1, id_esporte: 1, esporte: 'Futebol' }]]; } });
   const res = response();
   await route(app, path, 'post')({ params: { id: '1' }, body: { id_time: 2 } }, res, next);
   assert.equal(res.statusCode, 201);
@@ -32,10 +32,10 @@ test('inscrição: 400 para dados inválidos, 404 para ausentes e 409 para repet
   await route(createApp({ execute: async () => [[]] }), path, 'post')({ params: { id: '1' }, body: { id_time: 2 } }, noChampionship, next);
   assert.equal(noChampionship.statusCode, 404);
   const noTeam = response();
-  await route(createApp({ execute: async (sql, values) => (sql.includes('FROM campeonato') ? [[{ id: 1 }]] : [[]]) }), path, 'post')({ params: { id: '1' }, body: { id_time: 2 } }, noTeam, next);
+  await route(createApp({ execute: async (sql, values) => (sql.includes('FROM campeonato') ? [[{ id: 1, id_esporte: 1, esporte: 'Futebol' }]] : [[]]) }), path, 'post')({ params: { id: '1' }, body: { id_time: 2 } }, noTeam, next);
   assert.equal(noTeam.statusCode, 404);
   const dup = response();
-  const pool = { execute: async sql => { if (sql.startsWith('INSERT')) throw Object.assign(new Error('dup'), { code: 'ER_DUP_ENTRY' }); return [[{ id: 1 }]]; } };
+  const pool = { execute: async sql => { if (sql.startsWith('INSERT')) throw Object.assign(new Error('dup'), { code: 'ER_DUP_ENTRY' }); return [[{ id: 1, id_esporte: 1, esporte: 'Futebol' }]]; } };
   await route(createApp(pool), path, 'post')({ params: { id: '1' }, body: { id_time: 2 } }, dup, next);
   assert.equal(dup.statusCode, 409);
   assert.match(dup.body.erro, /inscrito/);
@@ -44,7 +44,7 @@ test('inscrição: 400 para dados inválidos, 404 para ausentes e 409 para repet
 test('lista times inscritos (400, 404 e 200)', async () => {
   const rows = [{ id_time: 2, nome: 'Time A' }];
   const ok = response();
-  await route(createApp({ execute: async sql => (sql.includes('FROM campeonato WHERE') ? [[{ id: 1 }]] : [rows]) }), path, 'get')({ params: { id: '1' } }, ok, next);
+  await route(createApp({ execute: async sql => (sql.includes('FROM campeonato WHERE') ? [[{ id: 1, id_esporte: 1, esporte: 'Futebol' }]] : [rows]) }), path, 'get')({ params: { id: '1' } }, ok, next);
   assert.deepEqual(ok.body, rows);
   const invalid = response();
   await route(createApp({}), path, 'get')({ params: { id: 'x' } }, invalid, next);
@@ -64,4 +64,19 @@ test('remove inscrição e trata ausente', async () => {
   const invalid = response();
   await route(createApp({}), `${path}/:teamId`, 'delete')({ params: { id: '1', teamId: 'x' } }, invalid, next);
   assert.equal(invalid.statusCode, 400);
+});
+
+test('inscrição: recusa time de outro esporte ou sem esporte', async () => {
+  const poolFor = teamRow => ({ execute: async sql => {
+    if (sql.startsWith('INSERT')) throw new Error('Não deve inscrever');
+    return sql.includes('FROM campeonato') ? [[{ id_esporte: 1, esporte: 'Futebol' }]] : [[teamRow]];
+  } });
+  const other = response();
+  await route(createApp(poolFor({ id_esporte: 4, esporte: 'Vôlei' })), path, 'post')({ params: { id: '1' }, body: { id_time: 2 } }, other, next);
+  assert.equal(other.statusCode, 400);
+  assert.match(other.body.erro, /Futebol.*Vôlei/);
+  const none = response();
+  await route(createApp(poolFor({ id_esporte: null, esporte: null })), path, 'post')({ params: { id: '1' }, body: { id_time: 2 } }, none, next);
+  assert.equal(none.statusCode, 400);
+  assert.match(none.body.erro, /esporte definido/);
 });
