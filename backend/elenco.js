@@ -19,16 +19,16 @@ const clean = body => [
 export function registerSquadRoutes(app, pool) {
   const teamExists = async id => (await pool.execute('SELECT id_time FROM time WHERE id_time = ?', [id]))[0].length > 0;
 
-  app.get('/api/times/:id/elenco', async (req, res, next) => {
+  app.get('/api/times/:id/jogadores', async (req, res, next) => {
     if (!validId(req.params.id)) return res.status(400).json({ erro: 'Identificador inválido.' });
     try {
       if (!(await teamExists(req.params.id))) return res.status(404).json({ erro: 'Time não encontrado.' });
-      const [rows] = await pool.execute('SELECT el.id_jogador, j.nome, j.foto_url, el.posicao, el.numero_camisa FROM elenco el JOIN jogador j ON j.id_jogador = el.id_jogador WHERE el.id_time = ? ORDER BY j.nome', [req.params.id]);
+      const [rows] = await pool.execute('SELECT el.id_elenco, el.id_jogador, j.nome, j.foto_url, el.posicao, el.numero_camisa FROM elenco el JOIN jogador j ON j.id_jogador = el.id_jogador WHERE el.id_time = ? ORDER BY j.nome', [req.params.id]);
       res.json(rows);
     } catch (error) { next(error); }
   });
 
-  app.post('/api/times/:id/elenco', async (req, res, next) => {
+  app.post('/api/times/:id/jogadores', async (req, res, next) => {
     if (!validId(req.params.id)) return res.status(400).json({ erro: 'Identificador inválido.' });
     const error = validateSquad(req.body, { needsPlayer: true });
     if (error) return res.status(400).json({ erro: error });
@@ -44,7 +44,7 @@ export function registerSquadRoutes(app, pool) {
     }
   });
 
-  app.put('/api/times/:id/elenco/:playerId', async (req, res, next) => {
+  app.put('/api/times/:id/jogadores/:playerId', async (req, res, next) => {
     if (!validId(req.params.id) || !validId(req.params.playerId)) return res.status(400).json({ erro: 'Identificador inválido.' });
     const error = validateSquad(req.body);
     if (error) return res.status(400).json({ erro: error });
@@ -56,7 +56,7 @@ export function registerSquadRoutes(app, pool) {
     } catch (error) { next(error); }
   });
 
-  app.delete('/api/times/:id/elenco/:playerId', async (req, res, next) => {
+  app.delete('/api/times/:id/jogadores/:playerId', async (req, res, next) => {
     if (!validId(req.params.id) || !validId(req.params.playerId)) return res.status(400).json({ erro: 'Identificador inválido.' });
     try {
       const [result] = await pool.execute('DELETE FROM elenco WHERE id_time = ? AND id_jogador = ?', [req.params.id, req.params.playerId]);

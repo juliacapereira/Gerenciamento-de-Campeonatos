@@ -32,7 +32,7 @@ export default function LoginAdministrador() {
 
     try {
       const resposta = await fetch(
-        "http://localhost:3000/api/admin/login",
+        "/api/admin/login",
         {
           method: "POST",
           headers: {

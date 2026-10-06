@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const API = "http://localhost:3000/api";
+const API = "/api";
 
 type TimeInscrito = {
   id_campeonato_time: number;

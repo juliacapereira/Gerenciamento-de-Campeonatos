@@ -63,7 +63,7 @@ export default function CadastroAdministrador() {
 
     try {
       const resposta = await fetch(
-        "http://localhost:3000/api/admin/cadastro",
+        "/api/admin/cadastro",
         {
           method: "POST",
           headers: {

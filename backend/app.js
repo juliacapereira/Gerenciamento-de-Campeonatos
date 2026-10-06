@@ -3,8 +3,9 @@ import cors from 'cors';
 import { validate } from './validation.js';
 import { registerPlayerRoutes } from './jogadores.js';
   import { registerSquadRoutes } from './elenco.js';
+import { registerEntryRoutes } from './inscricoes.js';
 
-export function createApp(pool) {
+export function createApp(pool, { adminRouter } = {}) {
   const app = express();
   app.use(cors());
   app.use(express.json({ limit: '32kb' }));
@@ -83,8 +84,10 @@ export function createApp(pool) {
     });
   }
 
-    registerPlayerRoutes(app, pool);
+    if (adminRouter) app.use('/api/admin', adminRouter);
+  registerPlayerRoutes(app, pool);
     registerSquadRoutes(app, pool);
+  registerEntryRoutes(app, pool);
 
   app.use((error, req, res, next) => {
     if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ erro: req.path.includes('campeonatos') ? 'Já existe um campeonato com esse nome, esporte e data inicial.' : req.path.includes('jogadores') ? 'Já existe um jogador cadastrado com esse documento.' : 'Já existe um time com esse nome.' });    

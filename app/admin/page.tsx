@@ -58,7 +58,7 @@ export default function PainelAdministrador() {
     async function verificarSessao() {
       try {
         const resposta = await fetch(
-          "http://localhost:3000/api/admin/me",
+          "/api/admin/me",
           {
             credentials: "include",
             cache: "no-store",
@@ -97,7 +97,7 @@ export default function PainelAdministrador() {
 
     try {
       const resposta = await fetch(
-        "http://localhost:3000/api/admin/logout",
+        "/api/admin/logout",
         {
           method: "POST",
           credentials: "include",
