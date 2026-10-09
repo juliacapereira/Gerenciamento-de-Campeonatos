@@ -1,7 +1,10 @@
-import { ManagementForm } from '@/components/arena/management'
-
-export const metadata = { title: 'Criar campeonato — Arena Local' }
+import { ManagementForm } from "@/components/arena/management";
+import { AdminGuard } from "@/components/auth/admin-guard";
 
 export default function Page() {
-  return <ManagementForm kind="campeonatos" />
+  return (
+    <AdminGuard>
+      <ManagementForm kind="campeonatos" />
+    </AdminGuard>
+  );
 }

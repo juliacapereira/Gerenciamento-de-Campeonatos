@@ -62,20 +62,18 @@ export default function CadastroAdministrador() {
     setCarregando(true);
 
     try {
-      const resposta = await fetch(
-        "/api/admin/cadastro",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            nome: nome.trim(),
-            email: email.trim().toLowerCase(),
-            senha,
-          }),
-        }
-      );
+      const resposta = await fetch("/api/admin/cadastro", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        nome: nome.trim(),
+        email: email.trim().toLowerCase(),
+        senha,
+      }),
+    });
 
       const dados = await resposta.json();
 

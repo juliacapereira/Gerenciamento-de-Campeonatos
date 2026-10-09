@@ -21,28 +21,33 @@ type Usuario = {
   email: string;
 };
 
-const funcionalidades = [
+  const funcionalidades = [
   {
     titulo: "Campeonatos",
     descricao: "Crie e organize suas competições.",
     icone: Trophy,
+    href: "/campeonatos",
   },
   {
     titulo: "Equipes",
     descricao: "Gerencie os times participantes.",
     icone: Users,
+    href: "/times",
   },
   {
     titulo: "Partidas",
     descricao: "Organize jogos e resultados.",
     icone: CalendarDays,
+    href: null,
   },
   {
     titulo: "Jogadores",
-    descricao: "Consulte os atletas cadastrados.",
+    descricao: "Consulte e gerencie os atletas cadastrados.",
     icone: UserRound,
+    href: "/jogadores",
   },
 ];
+
 
 export default function PainelAdministrador() {
   const router = useRouter();
@@ -233,46 +238,64 @@ export default function PainelAdministrador() {
             </p>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {funcionalidades.map((item) => {
-              const Icone = item.icone;
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+  {funcionalidades.map((item) => {
+    const Icone = item.icone;
 
-              return (
-                <div
-                  key={item.titulo}
-                  className="flex min-h-[215px] flex-col justify-between rounded-2xl border border-[#E5E9E0] bg-white p-6"
-                >
-                  <div>
-                    <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#EDF5D6]">
-                      <Icone
-                        size={23}
-                        className="text-[#173629]"
-                      />
-                    </div>
-
-                    <h3 className="text-lg font-extrabold">
-                      {item.titulo}
-                    </h3>
-
-                    <p className="mt-2 text-sm leading-relaxed text-[#718075]">
-                      {item.descricao}
-                    </p>
-                  </div>
-
-                  <div className="mt-6 flex items-center justify-between border-t border-[#E8EAE3] pt-4">
-                    <span className="text-xs font-bold uppercase tracking-wide text-[#86A535]">
-                      Em breve
-                    </span>
-
-                    <ArrowRight
-                      size={18}
-                      className="text-[#A0AAA0]"
-                    />
-                  </div>
-                </div>
-              );
-            })}
+    const conteudo = (
+      <>
+        <div>
+          <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#EDF5D6]">
+            <Icone
+              size={23}
+              className="text-[#173629]"
+            />
           </div>
+
+          <h3 className="text-lg font-extrabold">
+            {item.titulo}
+          </h3>
+
+          <p className="mt-2 text-sm leading-relaxed text-[#718075]">
+            {item.descricao}
+          </p>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between border-t border-[#E8EAE3] pt-4">
+          <span className="text-xs font-bold uppercase tracking-wide text-[#86A535]">
+            {item.href ? "Acessar" : "Em breve"}
+          </span>
+
+          <ArrowRight
+            size={18}
+            className="text-[#A0AAA0]"
+          />
+        </div>
+      </>
+    );
+
+    if (item.href) {
+      return (
+        <Link
+          key={item.titulo}
+          href={item.href}
+          className="flex min-h-[215px] flex-col justify-between rounded-2xl border border-[#E5E9E0] bg-white p-6 transition hover:-translate-y-1 hover:border-[#CBD7BE] hover:shadow-lg"
+        >
+          {conteudo}
+        </Link>
+      );
+    }
+
+    return (
+      <div
+        key={item.titulo}
+        className="flex min-h-[215px] flex-col justify-between rounded-2xl border border-[#E5E9E0] bg-white p-6 opacity-70"
+      >
+        {conteudo}
+      </div>
+    );
+  })}
+</div>
 
         </section>
 

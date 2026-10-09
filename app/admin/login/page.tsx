@@ -31,20 +31,17 @@ export default function LoginAdministrador() {
     setCarregando(true);
 
     try {
-      const resposta = await fetch(
-        "/api/admin/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            email: email.trim(),
-            senha,
-          }),
-        }
-      );
+     const resposta = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        email: email.trim(),
+        senha,
+      }),
+    });
 
       const dados = await resposta.json();
 

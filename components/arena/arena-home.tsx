@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useAdmin } from "@/hooks/use-admin";
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -85,31 +86,178 @@ function TeamMark({ mark, className = '' }: { mark: string; className?: string }
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const links = [['Início', '/'], ['Campeonatos', '/campeonatos'], ['Jogos', '/jogos'], ['Classificação', '/classificacao'], ['Times', '/times'], ['Jogadores', '/jogadores'], ['Esportes', '/esportes']]
+  const { isAdmin, carregando } = useAdmin()
+
+  const links = [
+    ['Início', '/'],
+    ['Campeonatos', '/campeonatos'],
+    ['Jogos', '/jogos'],
+    ['Classificação', '/classificacao'],
+    ['Times', '/times'],
+    ['Jogadores', '/jogadores'],
+    ['Esportes', '/esportes'],
+  ]
+
   return (
     <header className="sticky top-0 z-50 border-b border-[#e9e9e1] bg-[#fbfbf8]/95 backdrop-blur-md">
       <div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-5 lg:px-8">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Arena Local — início">
-          <span className="flex size-9 items-center justify-center rounded-[11px] bg-[#18372b] text-[#d7f36a]"><Trophy className="size-[18px]" strokeWidth={2.2} /></span>
-          <span className="text-[17px] font-extrabold tracking-[-.06em] text-[#193328]">arena<span className="text-[#829c38]">local</span></span>
+
+        <Link
+          href="/"
+          className="flex items-center gap-2.5"
+          aria-label="Arena Local — início"
+        >
+          <span className="flex size-9 items-center justify-center rounded-[11px] bg-[#18372b] text-[#d7f36a]">
+            <Trophy className="size-[18px]" strokeWidth={2.2} />
+          </span>
+
+          <span className="text-[17px] font-extrabold tracking-[-.06em] text-[#193328]">
+            arena
+            <span className="text-[#829c38]">
+              local
+            </span>
+          </span>
         </Link>
-        <nav aria-label="Navegação principal" className="hidden items-center gap-7 lg:flex">
-          {links.map(([label, href], i) => <Link key={label} href={href} className={`text-[13px] font-semibold transition hover:text-[#688128] ${i === 0 ? 'text-[#1e3b2d]' : 'text-[#72786e]'}`}>{label}</Link>)}
+
+        <nav
+          aria-label="Navegação principal"
+          className="hidden items-center gap-7 lg:flex"
+        >
+          {links.map(([label, href], i) => (
+            <Link
+              key={label}
+              href={href}
+              className={`text-[13px] font-semibold transition hover:text-[#688128] ${
+                i === 0
+                  ? 'text-[#1e3b2d]'
+                  : 'text-[#72786e]'
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
-        <div className="hidden items-center gap-3 lg:flex">
-          <Link href="/#buscar" aria-label="Pesquisar" className="flex size-10 items-center justify-center rounded-full text-[#4f5c51] transition hover:bg-[#f0f0e9]"><Search className="size-[18px]" /></Link>
-          <Link href="/campeonatos/novo" className="rounded-lg bg-[#1b392c] px-4 py-[11px] text-[12px] font-bold text-white transition hover:bg-[#2c523d]">Criar campeonato <ArrowUpRight className="ml-1 inline size-3.5" /></Link>
+
+        {/* DESKTOP */}
+        <div className="hidden items-center gap-2 lg:flex">
+          {!carregando && (
+            <>
+              {isAdmin ? (
+                <>
+                  <Link
+                    href="/admin"
+                    className="rounded-xl px-5 py-3 text-sm font-bold text-[#19382b] transition hover:bg-[#f0f3e9]"
+                  >
+                    Área do administrador
+                  </Link>
+
+                  <Link
+                    href="/campeonatos/novo"
+                    className="rounded-xl bg-[#19382b] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#2c523d]"
+                  >
+                    Criar campeonato
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/admin/login"
+                    className="rounded-xl px-5 py-3 text-sm font-bold text-[#19382b] transition hover:bg-[#f0f3e9]"
+                  >
+                    Entrar
+                  </Link>
+
+                  <Link
+                    href="/admin/cadastro"
+                    className="rounded-xl bg-[#19382b] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#2c523d]"
+                  >
+                    Criar conta
+                  </Link>
+                </>
+              )}
+            </>
+          )}
         </div>
-        <button onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'} aria-expanded={menuOpen} className="flex size-10 items-center justify-center rounded-lg text-[#263b2f] hover:bg-[#f0f0e9] lg:hidden">
-          {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+
+        {/* BOTÃO MOBILE */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={menuOpen}
+          className="flex size-10 items-center justify-center rounded-lg text-[#263b2f] hover:bg-[#f0f0e9] lg:hidden"
+        >
+          {menuOpen ? (
+            <X className="size-5" />
+          ) : (
+            <Menu className="size-5" />
+          )}
         </button>
       </div>
-      {menuOpen && <nav aria-label="Navegação móvel" className="border-t border-[#e9e9e1] bg-[#fbfbf8] px-5 py-4 lg:hidden">
-        <div className="mx-auto flex max-w-[1240px] flex-col gap-1">
-          {links.map(([label, href]) => <Link onClick={() => setMenuOpen(false)} key={label} href={href} className="rounded-lg px-3 py-3 text-sm font-semibold text-[#3e4c40] hover:bg-[#f0f0e9]">{label}</Link>)}
-          <Link onClick={() => setMenuOpen(false)} href="/campeonatos/novo" className="mt-2 rounded-lg bg-[#1b392c] px-4 py-3 text-center text-sm font-bold text-white">Criar campeonato</Link>
-        </div>
-      </nav>}
+
+      {/* MENU MOBILE */}
+      {menuOpen && (
+        <nav
+          aria-label="Navegação móvel"
+          className="border-t border-[#e9e9e1] bg-[#fbfbf8] px-5 py-4 lg:hidden"
+        >
+          <div className="mx-auto flex max-w-[1240px] flex-col gap-1">
+
+            {links.map(([label, href]) => (
+              <Link
+                onClick={() => setMenuOpen(false)}
+                key={label}
+                href={href}
+                className="rounded-lg px-3 py-3 text-sm font-semibold text-[#3e4c40] hover:bg-[#f0f0e9]"
+              >
+                {label}
+              </Link>
+            ))}
+
+            {!carregando && (
+              <>
+                {isAdmin ? (
+                  <>
+                    <Link
+                      onClick={() => setMenuOpen(false)}
+                      href="/admin"
+                      className="mt-2 rounded-lg border border-[#dfe3d6] px-4 py-3 text-center text-sm font-bold text-[#19382b]"
+                    >
+                      Área do administrador
+                    </Link>
+
+                    <Link
+                      onClick={() => setMenuOpen(false)}
+                      href="/campeonatos/novo"
+                      className="rounded-lg bg-[#1b392c] px-4 py-3 text-center text-sm font-bold text-white"
+                    >
+                      Criar campeonato
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      onClick={() => setMenuOpen(false)}
+                      href="/admin/login"
+                      className="mt-2 rounded-lg border border-[#dfe3d6] px-4 py-3 text-center text-sm font-bold text-[#19382b]"
+                    >
+                      Entrar
+                    </Link>
+
+                    <Link
+                      onClick={() => setMenuOpen(false)}
+                      href="/admin/cadastro"
+                      className="rounded-lg bg-[#1b392c] px-4 py-3 text-center text-sm font-bold text-white"
+                    >
+                      Criar conta
+                    </Link>
+                  </>
+                )}
+              </>
+            )}
+
+          </div>
+        </nav>
+      )}
     </header>
   )
 }
@@ -154,10 +302,74 @@ function ChampionshipCard({ item }: { item: HomeChampionship }) {
 }
 
 function ChampionshipsSection() {
-  const { records, loading, error } = useHomeRecords<HomeChampionship>('campeonatos')
-  return <section className="section-wrap pt-20 sm:pt-24"><SectionHeading eyebrow="Escolha sua torcida" title="Campeonatos em destaque" href="/campeonatos" linkLabel="Todos os campeonatos" />
-    {loading ? <p role="status" className="arena-empty">Carregando campeonatos...</p> : records.length ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{records.slice(0, 3).map(item => <ChampionshipCard key={item.id_campeonato} item={item} />)}</div> : <div className="arena-empty"><p>{error ? 'Não foi possível carregar os campeonatos.' : 'A próxima competição da comunidade começa com você.'}</p><Link className="arena-primary mt-4" href={error ? '/campeonatos' : '/campeonatos/novo'}>{error ? 'Abrir campeonatos' : 'Criar campeonato'}<ArrowRight className="size-4" /></Link></div>}
-  </section>
+  const { records, loading, error } =
+    useHomeRecords<HomeChampionship>('campeonatos')
+
+  const { isAdmin } = useAdmin()
+
+  return (
+    <section className="section-wrap pt-20 sm:pt-24">
+
+      <SectionHeading
+        eyebrow="Escolha sua torcida"
+        title="Campeonatos em destaque"
+        href="/campeonatos"
+        linkLabel="Todos os campeonatos"
+      />
+
+      {loading ? (
+        <p role="status" className="arena-empty">
+          Carregando campeonatos...
+        </p>
+      ) : records.length ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {records.slice(0, 3).map((item) => (
+            <ChampionshipCard
+              key={item.id_campeonato}
+              item={item}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="arena-empty">
+
+          <p>
+            {error
+              ? 'Não foi possível carregar os campeonatos.'
+              : 'Nenhum campeonato cadastrado no momento.'}
+          </p>
+
+          {error ? (
+            <Link
+              className="arena-primary mt-4"
+              href="/campeonatos"
+            >
+              Abrir campeonatos
+              <ArrowRight className="size-4" />
+            </Link>
+          ) : isAdmin ? (
+            <Link
+              className="arena-primary mt-4"
+              href="/campeonatos/novo"
+            >
+              Criar campeonato
+              <ArrowRight className="size-4" />
+            </Link>
+          ) : (
+            <Link
+              className="arena-secondary mt-4"
+              href="/campeonatos"
+            >
+              Ver campeonatos
+              <ArrowRight className="size-4" />
+            </Link>
+          )}
+
+        </div>
+      )}
+
+    </section>
+  )
 }
 
 function MatchCard({ match, index }: { match: (typeof matches)[number]; index: number }) {
@@ -261,12 +473,65 @@ function SearchSection() {
 }
 
 function OrganizerCTA() {
-  return <section className="section-wrap pb-16 pt-16 sm:pb-20 sm:pt-20">
-    <div className="organizer-panel relative overflow-hidden rounded-2xl bg-[#19382b] px-6 py-9 sm:px-10 sm:py-10 lg:px-12">
-      <div className="relative z-10 max-w-[650px]"><span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.16em] text-[#d7f36a]"><Trophy className="size-3.5"/> Para quem faz acontecer</span><h2 className="mt-4 max-w-[550px] font-display text-[29px] font-bold leading-[1.05] tracking-[-.045em] text-white sm:text-[37px]">Organize seu campeonato de forma simples</h2><p className="mt-3 max-w-[520px] text-[13px] leading-6 text-white/65">Cadastre equipes, jogadores, partidas, resultados e mantenha todos acompanhando a competição em um só lugar.</p><Link href="/campeonatos/novo" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[12px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]">Criar meu campeonato <ArrowRight className="size-4"/></Link></div>
-      <div aria-hidden="true" className="cta-decoration"><div className="cta-ring cta-ring-one"/><div className="cta-ring cta-ring-two"/><div className="cta-ring cta-ring-three"/><div className="cta-center"><Trophy className="size-10 text-[#d7f36a]"/></div></div>
-    </div>
-  </section>
+  const { isAdmin } = useAdmin()
+
+  return (
+    <section className="section-wrap pb-16 pt-16 sm:pb-20 sm:pt-20">
+
+      <div className="organizer-panel relative overflow-hidden rounded-2xl bg-[#19382b] px-6 py-9 sm:px-10 sm:py-10 lg:px-12">
+
+        <div className="relative z-10 max-w-[650px]">
+
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.16em] text-[#d7f36a]">
+            <Trophy className="size-3.5" />
+            Para quem faz acontecer
+          </span>
+
+          <h2 className="mt-4 max-w-[550px] font-display text-[29px] font-bold leading-[1.05] tracking-[-.045em] text-white sm:text-[37px]">
+            Organize seu campeonato de forma simples
+          </h2>
+
+          <p className="mt-3 max-w-[520px] text-[13px] leading-6 text-white/65">
+            Cadastre equipes, jogadores, partidas, resultados
+            e mantenha todos acompanhando a competição em um só lugar.
+          </p>
+
+          {isAdmin ? (
+            <Link
+              href="/campeonatos/novo"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[12px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]"
+            >
+              Criar meu campeonato
+              <ArrowRight className="size-4" />
+            </Link>
+          ) : (
+            <Link
+              href="/admin/login"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[12px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]"
+            >
+              Entrar como administrador
+              <ArrowRight className="size-4" />
+            </Link>
+          )}
+
+        </div>
+
+        <div
+          aria-hidden="true"
+          className="cta-decoration"
+        >
+          <div className="cta-ring cta-ring-one" />
+          <div className="cta-ring cta-ring-two" />
+          <div className="cta-ring cta-ring-three" />
+
+          <div className="cta-center">
+            <Trophy className="size-10 text-[#d7f36a]" />
+          </div>
+        </div>
+
+      </div>
+    </section>
+  )
 }
 
 export function Footer() {
