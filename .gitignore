@@ -1,4 +1,8 @@
-# v0 sandbox internal files
+# ==========================================
+# ARENALOCAL - GITIGNORE
+# ==========================================
+
+# Arquivos internos do v0
 __v0_runtime_loader.js
 __v0_devtools.tsx
 __v0_jsx-dev-runtime.ts
@@ -6,14 +10,50 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Next.js (arquivos gerados no build)
+# Next.js - arquivos gerados automaticamente
 .next/
+**/.next/
+out/
+build/
+dist/
 *.tsbuildinfo
 
-# Environment variables
-.env*.local
-.env
-backend/.env
-
-# Dependencies
+# Dependencias do frontend e backend
 node_modules/
+**/node_modules/
+
+# Variaveis de ambiente e credenciais
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Permitir arquivos de exemplo sem credenciais
+!.env.example
+!**/.env.example
+
+# Certificados e chaves privadas
+*.key
+*.p12
+*.pfx
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Arquivos temporarios
+*.tmp
+*.temp
+*.bak
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/

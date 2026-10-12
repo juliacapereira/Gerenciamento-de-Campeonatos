@@ -1,7 +1,10 @@
-import { ManagementForm } from '@/components/arena/management'
-
-export const metadata = { title: 'Cadastrar time — Arena Local' }
+import { ManagementForm } from "@/components/arena/management";
+import { AdminGuard } from "@/components/auth/admin-guard";
 
 export default function Page() {
-  return <ManagementForm kind="times" />
+  return (
+    <AdminGuard>
+      <ManagementForm kind="times" />
+    </AdminGuard>
+  );
 }

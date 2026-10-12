@@ -25,7 +25,7 @@ test('adiciona jogador ao elenco com SQL parametrizado', async () => {
   const calls = [];
   const app = createApp({ execute: async (sql, values) => { calls.push({ sql, values }); return sql.startsWith('INSERT') ? [{ insertId: 1 }] : [[{ id: 1 }]]; } });
   const res = response();
-  await route(app, '/api/times/:id/elenco', 'post')({ params: { id: '2' }, body: { id_jogador: 5, posicao: '  Pivô ', numero_camisa: '10' } }, res, next);
+  await route(app, '/api/times/:id/jogadores', 'post')({ params: { id: '2' }, body: { id_jogador: 5, posicao: '  Pivô ', numero_camisa: '10' } }, res, next);
   assert.equal(res.statusCode, 201);
   const insert = calls.at(-1);
   assert.ok(insert.sql.includes('VALUES (?, ?, ?, ?)'));
@@ -34,17 +34,17 @@ test('adiciona jogador ao elenco com SQL parametrizado', async () => {
 
 test('elenco: 400 para dados inválidos, 404 para time ou jogador ausente, 409 para repetido', async () => {
   const bad = response();
-  await route(createApp({ execute: () => { throw new Error('Não deve executar SQL'); } }), '/api/times/:id/elenco', 'post')({ params: { id: '2' }, body: {} }, bad, next);
+  await route(createApp({ execute: () => { throw new Error('Não deve executar SQL'); } }), '/api/times/:id/jogadores', 'post')({ params: { id: '2' }, body: {} }, bad, next);
   assert.equal(bad.statusCode, 400);
   const noTeam = response();
-  await route(createApp({ execute: async () => [[]] }), '/api/times/:id/elenco', 'post')({ params: { id: '2' }, body: { id_jogador: 5 } }, noTeam, next);
+  await route(createApp({ execute: async () => [[]] }), '/api/times/:id/jogadores', 'post')({ params: { id: '2' }, body: { id_jogador: 5 } }, noTeam, next);
   assert.equal(noTeam.statusCode, 404);
   const noPlayer = response();
-  await route(createApp({ execute: async sql => (sql.includes('FROM time') ? [[{ id_time: 2 }]] : [[]]) }), '/api/times/:id/elenco', 'post')({ params: { id: '2' }, body: { id_jogador: 5 } }, noPlayer, next);
+  await route(createApp({ execute: async sql => (sql.includes('FROM time') ? [[{ id_time: 2 }]] : [[]]) }), '/api/times/:id/jogadores', 'post')({ params: { id: '2' }, body: { id_jogador: 5 } }, noPlayer, next);
   assert.equal(noPlayer.statusCode, 404);
   const dup = response();
   const pool = { execute: async sql => { if (sql.startsWith('INSERT')) throw Object.assign(new Error('dup'), { code: 'ER_DUP_ENTRY' }); return [[{ id: 1 }]]; } };
-  await route(createApp(pool), '/api/times/:id/elenco', 'post')({ params: { id: '2' }, body: { id_jogador: 5 } }, dup, next);
+  await route(createApp(pool), '/api/times/:id/jogadores', 'post')({ params: { id: '2' }, body: { id_jogador: 5 } }, dup, next);
   assert.equal(dup.statusCode, 409);
   assert.match(dup.body.erro, /elenco/);
 });
@@ -52,13 +52,13 @@ test('elenco: 400 para dados inválidos, 404 para time ou jogador ausente, 409 p
 test('lista o elenco do time (400, 404 e 200)', async () => {
   const rows = [{ id_jogador: 5, nome: 'Ana Souza', posicao: 'Ala', numero_camisa: 7 }];
   const ok = response();
-  await route(createApp({ execute: async sql => (sql.includes('FROM time') ? [[{ id_time: 2 }]] : [rows]) }), '/api/times/:id/elenco', 'get')({ params: { id: '2' } }, ok, next);
+  await route(createApp({ execute: async sql => (sql.includes('FROM time') ? [[{ id_time: 2 }]] : [rows]) }), '/api/times/:id/jogadores', 'get')({ params: { id: '2' } }, ok, next);
   assert.deepEqual(ok.body, rows);
   const invalid = response();
-  await route(createApp({}), '/api/times/:id/elenco', 'get')({ params: { id: 'x' } }, invalid, next);
+  await route(createApp({}), '/api/times/:id/jogadores', 'get')({ params: { id: 'x' } }, invalid, next);
   assert.equal(invalid.statusCode, 400);
   const missing = response();
-  await route(createApp({ execute: async () => [[]] }), '/api/times/:id/elenco', 'get')({ params: { id: '2' } }, missing, next);
+  await route(createApp({ execute: async () => [[]] }), '/api/times/:id/jogadores', 'get')({ params: { id: '2' } }, missing, next);
   assert.equal(missing.statusCode, 404);
 });
 
@@ -70,13 +70,57 @@ test('edita e remove jogador do elenco', async () => {
     return [{ affectedRows: 1 }];
   } });
   const put = response();
-  await route(app, '/api/times/:id/elenco/:playerId', 'put')({ params: { id: '2', playerId: '5' }, body: { posicao: '', numero_camisa: 9 } }, put, next);
+  await route(app, '/api/times/:id/jogadores/:playerId', 'put')({ params: { id: '2', playerId: '5' }, body: { posicao: '', numero_camisa: 9 } }, put, next);
   assert.equal(put.statusCode, 200);
   assert.deepEqual(update, [null, 9, '2', '5']);
   const del = response();
-  await route(app, '/api/times/:id/elenco/:playerId', 'delete')({ params: { id: '2', playerId: '5' } }, del, next);
+  await route(app, '/api/times/:id/jogadores/:playerId', 'delete')({ params: { id: '2', playerId: '5' } }, del, next);
   assert.equal(del.statusCode, 200);
   const missing = response();
-  await route(createApp({ execute: async () => [{ affectedRows: 0 }] }), '/api/times/:id/elenco/:playerId', 'delete')({ params: { id: '2', playerId: '5' } }, missing, next);
+  await route(createApp({ execute: async () => [{ affectedRows: 0 }] }), '/api/times/:id/jogadores/:playerId', 'delete')({ params: { id: '2', playerId: '5' } }, missing, next);
   assert.equal(missing.statusCode, 404);
+});
+test('posições: lista fixa por esporte, várias permitidas, texto livre sem lista', () => {
+  assert.equal(validateSquad({ posicao: 'Goleiro' }, { sport: 'Futsal' }), null);
+  assert.equal(validateSquad({ posicao: 'Ala, Pivô' }, { sport: 'Futsal' }), null);
+  assert.equal(validateSquad({ posicao: 'Líbero' }, { sport: 'Vôlei' }), null);
+  assert.equal(validateSquad({ posicao: 'Líbero' }, { sport: 'volei' }), null);
+  assert.ok(validateSquad({ posicao: 'Levantador' }, { sport: 'Futsal' }));
+  assert.ok(validateSquad({ posicao: 'Ala, Ala' }, { sport: 'Futsal' }));
+  assert.match(validateSquad({ posicao: 'Pivô, Fixo, Dono' }, { sport: 'Futsal' }), /Futsal/);
+  assert.equal(validateSquad({ posicao: 'Qualquer coisa' }, { sport: 'Esporte novo' }), null);
+  assert.equal(validateSquad({ posicao: 'Qualquer coisa' }), null);
+});
+
+test('GET /api/posicoes devolve as posições de cada esporte', () => {
+  const res = response();
+  route(createApp({}), '/api/posicoes', 'get')({}, res, next);
+  assert.deepEqual(res.body.Futsal, ['Goleiro', 'Fixo', 'Ala', 'Pivô']);
+  assert.ok(Object.keys(res.body).length >= 4);
+});
+
+test('elenco: posição fora da lista do esporte do time é recusada antes do INSERT', async () => {
+  const calls = [];
+  const pool = { execute: async (sql, values) => { calls.push(sql); return sql.includes('FROM time') ? [[{ id_time: 2, esporte: 'Futsal' }]] : [[{ id: 1 }]]; } };
+  const bad = response();
+  await route(createApp(pool), '/api/times/:id/jogadores', 'post')({ params: { id: '2' }, body: { id_jogador: 5, posicao: 'Levantador' } }, bad, next);
+  assert.equal(bad.statusCode, 400);
+  assert.match(bad.body.erro, /Futsal/);
+  assert.ok(!calls.some(sql => sql.startsWith('INSERT')));
+  const badEdit = response();
+  await route(createApp(pool), '/api/times/:id/jogadores/:playerId', 'put')({ params: { id: '2', playerId: '5' }, body: { posicao: 'Levantador' } }, badEdit, next);
+  assert.equal(badEdit.statusCode, 400);
+  assert.ok(!calls.some(sql => sql.startsWith('UPDATE')));
+});
+
+test('elenco: várias posições válidas são gravadas normalizadas', async () => {
+  let values;
+  const pool = { execute: async (sql, params) => {
+    if (sql.startsWith('INSERT')) { values = params; return [{ insertId: 1 }]; }
+    return sql.includes('FROM time') ? [[{ id_time: 2, esporte: 'Futsal' }]] : [[{ id: 1 }]];
+  } };
+  const res = response();
+  await route(createApp(pool), '/api/times/:id/jogadores', 'post')({ params: { id: '2' }, body: { id_jogador: 5, posicao: ' Ala,Pivô ', numero_camisa: '' } }, res, next);
+  assert.equal(res.statusCode, 201);
+  assert.deepEqual(values, ['2', 5, 'Ala, Pivô', null]);
 });
