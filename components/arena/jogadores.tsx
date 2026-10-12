@@ -24,7 +24,7 @@ type Player = {
   nome: string
   documento: string
   data_nascimento?: string | null
-  foto_url?: string | null
+  foto_url?: string | null;posicao?: string | null;
   times?: PlayerTeam[]
 }
 
@@ -512,6 +512,25 @@ export function PlayerForm({
                 />
               </Field>
             </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+               <Field name="posicao" label="Posição principal" required>
+               <select 
+                className="arena-input" 
+                 id="posicao" 
+                name="posicao" 
+                defaultValue={player?.posicao || ''} 
+                required
+                  >
+                    <option value="" disabled>Selecione a posição</option>
+                    <option value="Goleiro">Goleiro</option>
+                    <option value="Zagueiro">Zagueiro</option>
+                    <option value="Lateral">Lateral</option>
+                    <option value="Volante">Volante</option>
+                    <option value="Meia">Meia</option>
+                    <option value="Atacante">Atacante</option>
+                  </select>
+                </Field>
+              </div>
 
             {error && (
               <p
@@ -756,6 +775,7 @@ export function PlayerDetail({
                   {formatDate(player.data_nascimento) || 'Não informada'}
                 </dd>
               </div>
+                <div><dt className="flex items-center gap-2 text-xs text-[#7d8378]"><Users className="size-4" />Posição</dt><dd className="mt-1 font-semibold">{player.posicao || 'Não informada'}</dd></div>
             </dl>
 
             <p className="mt-6 border-t border-[#e5e7dd] pt-4 text-xs text-[#7d8378]">
