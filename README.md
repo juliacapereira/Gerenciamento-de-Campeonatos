@@ -41,6 +41,20 @@ npm run dev
 
 O site encaminha `/api/*` para `http://127.0.0.1:3001`. Para usar outra URL, defina `API_URL` em `.env.local` na raiz e reinicie o Next.js. Os formulários e listagens precisam da API e do banco disponíveis.
 
+## Testar e ativar o serviço do banco
+Antes de iniciar a API, você pode testar o banco na pasta `backend`:
+
+```bash
+npm run db:check
+```
+
+O teste usa a mesma configuração TLS da API e não altera dados. Timeout indica que a conexão não recebeu resposta; confira host, porta, disponibilidade do serviço, restrições de IP e rede.
+
+Se o serviço estiver desligado, instale a [CLI oficial do Aiven](https://aiven.io/docs/tools/cli), faça login com `avn user login` e preencha `AIVEN_PROJECT` e `AIVEN_SERVICE` em `backend/.env` com os nomes do painel. Execute `npm run db:activate` na pasta `backend` para ligar o serviço e aguardar sua inicialização. Este comando exige permissão na conta Aiven; as credenciais MySQL não substituem o login na CLI. Se o serviço já estiver ligado, use o teste de conexão para investigar a falha.
+
+No VS Code, abra a pasta raiz do projeto e use **Terminal > Run Task**: **Banco: ativar serviço no Aiven** ou **Banco: testar conexão**. Esses comandos não executam `banco.sql` nem recriam tabelas.
+
+
 ## Histórias implementadas
 
 - `/campeonatos`: listagem com busca e filtros de esporte e status.
