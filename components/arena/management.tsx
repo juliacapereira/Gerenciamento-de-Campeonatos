@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, MapPin, Pencil, Tras
 import { Header, Footer } from './arena-home'
 import { SquadSection } from './elenco'
 import { EntriesSection } from './inscricoes'
+import { ChampionshipSummary } from './calendario'
 import { useAdmin } from '@/hooks/use-admin'
 
 type Kind = 'campeonatos' | 'times'
@@ -1179,6 +1180,8 @@ export function ManagementDetail({
               sport={entry.esporte}
             />
           )}
+
+          {championship && <ChampionshipSummary id={id} />}
 
           {championship && entry.id_esporte ? (
             <EntriesSection

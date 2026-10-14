@@ -130,8 +130,9 @@ export function EntriesSection({ championshipId, sportId, sport }: { championshi
 
   return (
     <section
+      id="times-participantes"
       aria-labelledby="inscricoes-title"
-      className="mt-6 rounded-2xl border border-[#e5e7dd] bg-white p-6 sm:p-8"
+      className="mt-6 scroll-mt-24 rounded-2xl border border-[#e5e7dd] bg-white p-6 sm:p-8"
     >
       <div className="flex items-center gap-3">
         <Users aria-hidden="true" className="size-6 text-[#789339]" />
