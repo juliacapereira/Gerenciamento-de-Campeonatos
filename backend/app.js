@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
+import { registerMatchRoutes } from './partidas.js';
+
 import { validate } from './validation.js';
 import { autenticar } from './src/routes/administradores.js';
 
@@ -66,8 +68,6 @@ export function createApp(pool, { adminRouter } = {}) {
   // PATCH
   // DELETE
   //
-  // Isso protege automaticamente as funcionalidades das
-  // US03, US04, US05, US06, US07 e US08.
   // ============================================================
 
   app.use('/api', (req, res, next) => {
@@ -103,12 +103,12 @@ export function createApp(pool, { adminRouter } = {}) {
     try {
       const [rows] = await pool.query(
         `
-        SELECT
-          id_esporte,
-          nome,
-          descricao
-        FROM esporte
-        ORDER BY nome
+          SELECT
+            id_esporte,
+            nome,
+            descricao
+          FROM esporte
+          ORDER BY nome
         `
       );
 
@@ -125,7 +125,6 @@ export function createApp(pool, { adminRouter } = {}) {
   // ============================================================
 
   for (const kind of ['campeonatos', 'times']) {
-
     const championship = kind === 'campeonatos';
 
     const table = championship
@@ -186,8 +185,8 @@ export function createApp(pool, { adminRouter } = {}) {
     // Validação de ID
     // ----------------------------------------------------------
 
-    const validId = (value) =>
-      /^[1-9]\d*$/.test(value) &&
+    const validId = value =>
+      /^[1-9]\d*$/.test(String(value)) &&
       Number.isSafeInteger(Number(value));
 
 
@@ -223,7 +222,6 @@ export function createApp(pool, { adminRouter } = {}) {
     // ==========================================================
 
     app.get(`/api/${kind}/:id`, async (req, res, next) => {
-
       if (!validId(req.params.id)) {
         return res.status(400).json({
           erro: 'Identificador inválido.',
@@ -233,8 +231,8 @@ export function createApp(pool, { adminRouter } = {}) {
       try {
         const [rows] = await pool.execute(
           `
-          ${select}
-          WHERE t.${id} = ?
+            ${select}
+            WHERE t.${id} = ?
           `,
           [req.params.id]
         );
@@ -258,10 +256,12 @@ export function createApp(pool, { adminRouter } = {}) {
     // POST /api/times
     //
     // ADMINISTRADOR
+    //
+    // Campeonato:
+    // o proprietário é sempre o administrador autenticado.
     // ==========================================================
 
     app.post(`/api/${kind}`, async (req, res, next) => {
-
       const error = validate(kind, req.body);
 
       if (error) {
@@ -270,7 +270,7 @@ export function createApp(pool, { adminRouter } = {}) {
         });
       }
 
-      const values = fields.map((field) => {
+      const values = fields.map(field => {
         const value = req.body[field];
 
         if (typeof value === 'string') {
@@ -281,14 +281,24 @@ export function createApp(pool, { adminRouter } = {}) {
       });
 
       try {
+        let insertFields = [...fields];
+        let insertValues = [...values];
+
+        // O frontend nunca escolhe o proprietário.
+        // O dono do campeonato é o administrador da sessão.
+        if (championship) {
+          insertFields.push('id_usuario');
+          insertValues.push(req.usuario.id_usuario);
+        }
+
         const [result] = await pool.execute(
           `
-          INSERT INTO ${table}
-            (${fields.join(', ')})
-          VALUES
-            (${fields.map(() => '?').join(', ')})
+            INSERT INTO ${table}
+              (${insertFields.join(', ')})
+            VALUES
+              (${insertFields.map(() => '?').join(', ')})
           `,
-          values
+          insertValues
         );
 
         res.status(201).json({
@@ -310,10 +320,12 @@ export function createApp(pool, { adminRouter } = {}) {
     // PUT /api/times/:id
     //
     // ADMINISTRADOR
+    //
+    // Campeonato:
+    // somente o proprietário pode editar.
     // ==========================================================
 
     app.put(`/api/${kind}/:id`, async (req, res, next) => {
-
       if (!validId(req.params.id)) {
         return res.status(400).json({
           erro: 'Identificador inválido.',
@@ -330,11 +342,19 @@ export function createApp(pool, { adminRouter } = {}) {
 
       try {
         const [existing] = await pool.execute(
-          `
-          SELECT ${id}
-          FROM ${table}
-          WHERE ${id} = ?
-          `,
+          championship
+            ? `
+                SELECT
+                  ${id},
+                  id_usuario
+                FROM ${table}
+                WHERE ${id} = ?
+              `
+            : `
+                SELECT ${id}
+                FROM ${table}
+                WHERE ${id} = ?
+              `,
           [req.params.id]
         );
 
@@ -344,7 +364,22 @@ export function createApp(pool, { adminRouter } = {}) {
           });
         }
 
-        const values = fields.map((field) => {
+        // ------------------------------------------------------
+        // Somente o proprietário pode editar campeonato
+        // ------------------------------------------------------
+
+        if (
+          championship &&
+          Number(existing[0].id_usuario) !==
+            Number(req.usuario.id_usuario)
+        ) {
+          return res.status(403).json({
+            erro:
+              'Você não tem permissão para alterar este campeonato.',
+          });
+        }
+
+        const values = fields.map(field => {
           const value = req.body[field];
 
           if (typeof value === 'string') {
@@ -356,9 +391,11 @@ export function createApp(pool, { adminRouter } = {}) {
 
         const [result] = await pool.execute(
           `
-          UPDATE ${table}
-          SET ${fields.map((field) => `${field} = ?`).join(', ')}
-          WHERE ${id} = ?
+            UPDATE ${table}
+            SET ${fields
+              .map(field => `${field} = ?`)
+              .join(', ')}
+            WHERE ${id} = ?
           `,
           [...values, req.params.id]
         );
@@ -388,10 +425,12 @@ export function createApp(pool, { adminRouter } = {}) {
     // DELETE /api/times/:id
     //
     // ADMINISTRADOR
+    //
+    // Campeonato:
+    // somente o proprietário pode excluir.
     // ==========================================================
 
     app.delete(`/api/${kind}/:id`, async (req, res, next) => {
-
       if (!validId(req.params.id)) {
         return res.status(400).json({
           erro: 'Identificador inválido.',
@@ -407,14 +446,24 @@ export function createApp(pool, { adminRouter } = {}) {
 
 
         // Bloqueia temporariamente o registro principal enquanto
-        // verificamos os vínculos.
+        // verificamos propriedade e vínculos.
+
         const [existing] = await connection.execute(
-          `
-          SELECT ${id}
-          FROM ${table}
-          WHERE ${id} = ?
-          FOR UPDATE
-          `,
+          championship
+            ? `
+                SELECT
+                  ${id},
+                  id_usuario
+                FROM ${table}
+                WHERE ${id} = ?
+                FOR UPDATE
+              `
+            : `
+                SELECT ${id}
+                FROM ${table}
+                WHERE ${id} = ?
+                FOR UPDATE
+              `,
           [req.params.id]
         );
 
@@ -423,6 +472,24 @@ export function createApp(pool, { adminRouter } = {}) {
 
           return res.status(404).json({
             erro: 'Cadastro não encontrado.',
+          });
+        }
+
+
+        // ------------------------------------------------------
+        // Somente o proprietário pode excluir campeonato
+        // ------------------------------------------------------
+
+        if (
+          championship &&
+          Number(existing[0].id_usuario) !==
+            Number(req.usuario.id_usuario)
+        ) {
+          await connection.rollback();
+
+          return res.status(403).json({
+            erro:
+              'Você não tem permissão para excluir este campeonato.',
           });
         }
 
@@ -447,13 +514,12 @@ export function createApp(pool, { adminRouter } = {}) {
 
 
         for (const [relatedTable, column] of relations) {
-
           const [linked] = await connection.execute(
             `
-            SELECT 1
-            FROM ${relatedTable}
-            WHERE ${column} = ?
-            LIMIT 1
+              SELECT 1
+              FROM ${relatedTable}
+              WHERE ${column} = ?
+              LIMIT 1
             `,
             [req.params.id]
           );
@@ -476,8 +542,8 @@ export function createApp(pool, { adminRouter } = {}) {
 
         await connection.execute(
           `
-          DELETE FROM ${table}
-          WHERE ${id} = ?
+            DELETE FROM ${table}
+            WHERE ${id} = ?
           `,
           [req.params.id]
         );
@@ -491,7 +557,6 @@ export function createApp(pool, { adminRouter } = {}) {
         });
 
       } catch (error) {
-
         if (connection) {
           await connection.rollback();
         }
@@ -512,9 +577,9 @@ export function createApp(pool, { adminRouter } = {}) {
   // Como estas rotas são registradas DEPOIS do middleware de
   // autenticação:
   //
-  // GET               -> público
+  // GET              -> público
   // POST/PUT/PATCH/
-  // DELETE            -> administrador
+  // DELETE           -> administrador
   //
   // ============================================================
 
@@ -522,6 +587,7 @@ export function createApp(pool, { adminRouter } = {}) {
   registerSquadRoutes(app, pool);
   registerEntryRoutes(app, pool);
   registerSportRoutes(app, pool);
+  registerMatchRoutes(app, pool);
 
 
   // ============================================================
@@ -529,13 +595,11 @@ export function createApp(pool, { adminRouter } = {}) {
   // ============================================================
 
   app.use((error, req, res, next) => {
-
     // ----------------------------------------------------------
     // Registro duplicado
     // ----------------------------------------------------------
 
     if (error.code === 'ER_DUP_ENTRY') {
-
       if (req.path.includes('campeonatos')) {
         return res.status(409).json({
           erro:

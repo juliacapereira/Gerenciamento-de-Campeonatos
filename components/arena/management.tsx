@@ -2,18 +2,38 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, MapPin, Pencil, Trash2, Plus, Search, Shield, Trophy } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  MapPin,
+  Pencil,
+  Trash2,
+  Plus,
+  Search,
+  Shield,
+  Trophy
+} from 'lucide-react'
+
 import { Header, Footer } from './arena-home'
 import { SquadSection } from './elenco'
 import { EntriesSection } from './inscricoes'
+import { MatchesSection } from './partidas'
 import { useAdmin } from '@/hooks/use-admin'
 
 type Kind = 'campeonatos' | 'times'
-type Sport = { id_esporte: number; nome: string }
+
+type Sport = {
+  id_esporte: number
+  nome: string
+}
+
 type Entry = {
   id_campeonato?: number
   id_time?: number
   id_esporte?: number
+  id_usuario?: number
   nome: string
   esporte: string
   descricao?: string
@@ -47,29 +67,47 @@ const labels = {
   }
 }
 
-export async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/${path}`, { cache: 'no-store', ...options })
+export async function request<T>(
+  path: string,
+  options?: RequestInit
+): Promise<T> {
+  const response = await fetch(`/api/${path}`, {
+    cache: 'no-store',
+    ...options
+  })
 
   let data
 
   try {
     data = await response.json()
   } catch {
-    throw new Error('Não foi possível conectar à API. Verifique se o backend está em execução.')
+    throw new Error(
+      'Não foi possível conectar à API. Verifique se o backend está em execução.'
+    )
   }
 
-  if (!response.ok) throw new Error(data.erro || 'Não foi possível concluir a operação.')
+  if (!response.ok) {
+    throw new Error(
+      data.erro || 'Não foi possível concluir a operação.'
+    )
+  }
 
   return data
 }
 
-function Shell({ children }: { children: ReactNode }) {
+function Shell({
+  children
+}: {
+  children: ReactNode
+}) {
   return (
     <>
       <Header />
+
       <main className="section-wrap min-h-[70vh] py-10 sm:py-14">
         {children}
       </main>
+
       <Footer />
     </>
   )
@@ -84,7 +122,10 @@ function Banner({
   form?: boolean
   editing?: boolean
 }) {
-  const Icon = kind === 'campeonatos' ? Trophy : Shield
+  const Icon =
+    kind === 'campeonatos'
+      ? Trophy
+      : Shield
 
   return (
     <div className="organizer-panel relative mb-8 overflow-hidden rounded-2xl bg-[#19382b] p-6 text-white sm:p-9">
@@ -116,24 +157,48 @@ function Banner({
   )
 }
 
-export function ManagementList({ kind }: { kind: Kind }) {
-  const { isAdmin } = useAdmin()
+export function ManagementList({
+  kind
+}: {
+  kind: Kind
+}) {
+  const {
+    usuario,
+    isAdmin
+  } = useAdmin()
 
-  const [entries, setEntries] = useState<Entry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [query, setQuery] = useState('')
-  const [sport, setSport] = useState('')
-  const [status, setStatus] = useState('')
+  const [entries, setEntries] =
+    useState<Entry[]>([])
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [error, setError] =
+    useState('')
+
+  const [query, setQuery] =
+    useState('')
+
+  const [sport, setSport] =
+    useState('')
+
+  const [status, setStatus] =
+    useState('')
 
   async function load() {
     setLoading(true)
     setError('')
 
     try {
-      setEntries(await request<Entry[]>(kind))
+      setEntries(
+        await request<Entry[]>(kind)
+      )
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erro ao carregar dados.')
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Erro ao carregar dados.'
+      )
     } finally {
       setLoading(false)
     }
@@ -143,14 +208,28 @@ export function ManagementList({ kind }: { kind: Kind }) {
     void load()
   }, [kind]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filtered = entries.filter(
-    entry =>
-      `${entry.nome} ${entry.cidade || ''}`
-        .toLocaleLowerCase('pt-BR')
-        .includes(query.toLocaleLowerCase('pt-BR')) &&
-      (!sport || entry.esporte === sport) &&
-      (!status || entry.status === status)
-  )
+  const visibleEntries =
+    kind === 'campeonatos' && isAdmin
+      ? entries.filter(
+          entry =>
+            Number(entry.id_usuario) ===
+            Number(usuario?.id)
+        )
+      : entries
+
+  const filtered =
+    visibleEntries.filter(
+      entry =>
+        `${entry.nome} ${entry.cidade || ''}`
+          .toLocaleLowerCase('pt-BR')
+          .includes(
+            query.toLocaleLowerCase('pt-BR')
+          ) &&
+        (!sport ||
+          entry.esporte === sport) &&
+        (!status ||
+          entry.status === status)
+    )
 
   return (
     <Shell>
@@ -160,12 +239,15 @@ export function ManagementList({ kind }: { kind: Kind }) {
         <div>
           <h2 className="font-display text-2xl font-bold">
             {kind === 'campeonatos'
-              ? 'Competições da comunidade'
+              ? isAdmin
+                ? 'Meus campeonatos'
+                : 'Competições da comunidade'
               : 'Equipes da comunidade'}
           </h2>
 
           <p className="mt-1 text-xs text-[#7d8378]">
-            {entries.length} {kind} cadastrados
+            {visibleEntries.length}{' '}
+            {kind} cadastrados
           </p>
         </div>
 
@@ -175,6 +257,7 @@ export function ManagementList({ kind }: { kind: Kind }) {
             href={`/${kind}/novo`}
           >
             <Plus className="size-4" />
+
             {labels[kind].action}
           </Link>
         )}
@@ -187,9 +270,15 @@ export function ManagementList({ kind }: { kind: Kind }) {
           <input
             aria-label={`Pesquisar ${kind}`}
             className="arena-input pl-10!"
-            placeholder={`Pesquisar ${kind}${kind === 'times' ? ' ou cidade' : ''}...`}
+            placeholder={`Pesquisar ${kind}${
+              kind === 'times'
+                ? ' ou cidade'
+                : ''
+            }...`}
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e =>
+              setQuery(e.target.value)
+            }
           />
         </div>
 
@@ -197,16 +286,26 @@ export function ManagementList({ kind }: { kind: Kind }) {
           className="arena-input w-full! sm:w-auto!"
           aria-label="Filtrar por esporte"
           value={sport}
-          onChange={e => setSport(e.target.value)}
+          onChange={e =>
+            setSport(e.target.value)
+          }
         >
-          <option value="">Todos os esportes</option>
+          <option value="">
+            Todos os esportes
+          </option>
 
           {Array.from(
-            new Set(entries.map(entry => entry.esporte).filter(Boolean))
+            new Set(
+              visibleEntries
+                .map(entry => entry.esporte)
+                .filter(Boolean)
+            )
           )
             .sort()
             .map(name => (
-              <option key={name}>{name}</option>
+              <option key={name}>
+                {name}
+              </option>
             ))}
         </select>
 
@@ -215,25 +314,40 @@ export function ManagementList({ kind }: { kind: Kind }) {
             aria-label="Filtrar por status"
             className="arena-input w-full! sm:w-auto!"
             value={status}
-            onChange={e => setStatus(e.target.value)}
+            onChange={e =>
+              setStatus(e.target.value)
+            }
           >
-            <option value="">Todos os status</option>
+            <option value="">
+              Todos os status
+            </option>
 
-            {Object.entries(statuses).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
+            {Object.entries(statuses).map(
+              ([key, label]) => (
+                <option
+                  key={key}
+                  value={key}
+                >
+                  {label}
+                </option>
+              )
+            )}
           </select>
         )}
       </div>
 
       {loading ? (
-        <p role="status" className="arena-empty">
+        <p
+          role="status"
+          className="arena-empty"
+        >
           Carregando {kind}...
         </p>
       ) : error ? (
-        <div role="alert" className="arena-empty">
+        <div
+          role="alert"
+          className="arena-empty"
+        >
           <p>{error}</p>
 
           <button
@@ -248,33 +362,45 @@ export function ManagementList({ kind }: { kind: Kind }) {
           <Trophy className="mx-auto mb-4 size-9 text-[#829c38]" />
 
           <h3 className="font-display text-2xl font-bold">
-            {entries.length
+            {visibleEntries.length
               ? 'Nenhum resultado encontrado'
               : 'A próxima história começa aqui'}
           </h3>
 
           <p className="mt-2 text-sm text-[#7d8378]">
-            {entries.length
+            {visibleEntries.length
               ? 'Experimente outro nome ou filtro.'
               : isAdmin
-                ? `Cadastre o primeiro ${labels[kind].singular} da comunidade.`
+                ? `Cadastre o primeiro ${labels[kind].singular}.`
                 : `Nenhum ${labels[kind].singular} cadastrado no momento.`}
           </p>
 
-          {!entries.length && isAdmin && (
-            <Link
-              className="arena-primary mt-5"
-              href={`/${kind}/novo`}
-            >
-              {labels[kind].action}
-              <ArrowRight className="size-4" />
-            </Link>
-          )}
+          {!visibleEntries.length &&
+            isAdmin && (
+              <Link
+                className="arena-primary mt-5"
+                href={`/${kind}/novo`}
+              >
+                {labels[kind].action}
+
+                <ArrowRight className="size-4" />
+              </Link>
+            )}
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(entry => {
-            const entryId = entry.id_campeonato ?? entry.id_time
+            const entryId =
+              entry.id_campeonato ??
+              entry.id_time
+
+            const canEdit =
+              isAdmin &&
+              (
+                kind !== 'campeonatos' ||
+                Number(entry.id_usuario) ===
+                  Number(usuario?.id)
+              )
 
             return (
               <article
@@ -283,14 +409,17 @@ export function ManagementList({ kind }: { kind: Kind }) {
               >
                 <div className="champ-banner champ-green flex h-28 items-center justify-between px-5">
                   <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-bold text-white">
-                    {entry.esporte || 'Sem esporte'}
+                    {entry.esporte ||
+                      'Sem esporte'}
                   </span>
 
                   <div className="champ-emblem">
                     {(entry.nome_abreviado ||
                       entry.nome
                         .split(' ')
-                        .map(word => word[0])
+                        .map(
+                          word => word[0]
+                        )
                         .join(''))
                       .slice(0, 3)
                       .toUpperCase()}
@@ -310,18 +439,29 @@ export function ManagementList({ kind }: { kind: Kind }) {
                   {kind === 'campeonatos' ? (
                     <>
                       <span className="status-dot mt-3">
-                        {statuses[entry.status || ''] || entry.status}
+                        {statuses[
+                          entry.status || ''
+                        ] || entry.status}
                       </span>
 
                       <p className="mt-4 flex items-center gap-2 text-xs text-[#7d8378]">
                         <CalendarDays className="size-4 shrink-0" />
-                        {formatDate(entry.data_inicial)} — {formatDate(entry.data_fim)}
+
+                        {formatDate(
+                          entry.data_inicial
+                        )}{' '}
+                        —{' '}
+                        {formatDate(
+                          entry.data_fim
+                        )}
                       </p>
                     </>
                   ) : (
                     <p className="mt-3 flex items-center gap-2 text-xs text-[#7d8378]">
                       <MapPin className="size-4" />
-                      {entry.cidade || 'Cidade não informada'}
+
+                      {entry.cidade ||
+                        'Cidade não informada'}
                     </p>
                   )}
 
@@ -347,16 +487,22 @@ export function ManagementList({ kind }: { kind: Kind }) {
                       className="inline-flex items-center gap-2 text-xs font-bold"
                       href={`/${kind}/${entryId}`}
                     >
-                      Ver {labels[kind].singular}
+                      Ver{' '}
+                      {
+                        labels[kind]
+                          .singular
+                      }
+
                       <ArrowRight className="size-4" />
                     </Link>
 
-                    {isAdmin && (
+                    {canEdit && (
                       <Link
                         className="inline-flex items-center gap-1 text-xs text-[#68795c]"
                         href={`/${kind}/${entryId}/editar`}
                       >
                         <Pencil className="size-3.5" />
+
                         Editar
                       </Link>
                     )}
@@ -371,9 +517,16 @@ export function ManagementList({ kind }: { kind: Kind }) {
   )
 }
 
-function formatDate(date?: string) {
+function formatDate(
+  date?: string
+) {
   return date
-    ? new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR')
+    ? new Date(
+        `${date.slice(
+          0,
+          10
+        )}T12:00:00`
+      ).toLocaleDateString('pt-BR')
     : ''
 }
 
@@ -395,14 +548,19 @@ function Field({
         className="mb-2 block text-xs font-bold"
       >
         {label}
-        {required && <span className="text-[#829c38]"> *</span>}
+
+        {required && (
+          <span className="text-[#829c38]">
+            {' '}
+            *
+          </span>
+        )}
       </label>
 
       {children}
     </div>
   )
 }
-
 export function ManagementForm({
   kind,
   id
@@ -410,31 +568,78 @@ export function ManagementForm({
   kind: Kind
   id?: string
 }) {
-  const [entry, setEntry] = useState<Entry | null>(null)
-  const [savedId, setSavedId] = useState<string | number | undefined>(id)
-  const [sports, setSports] = useState<Sport[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState('')
-  const [start, setStart] = useState('')
+  const {
+    usuario,
+    isAdmin,
+    carregando: adminLoading
+  } = useAdmin()
+
+  const [entry, setEntry] =
+    useState<Entry | null>(null)
+
+  const [savedId, setSavedId] =
+    useState<
+      string | number | undefined
+    >(id)
+
+  const [sports, setSports] =
+    useState<Sport[]>([])
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [loadError, setLoadError] =
+    useState('')
+
+  const [error, setError] =
+    useState('')
+
+  const [saving, setSaving] =
+    useState(false)
+
+  const [success, setSuccess] =
+    useState('')
+
+  const [start, setStart] =
+    useState('')
+
+  const championship =
+    kind === 'campeonatos'
+
+  const canManage =
+    isAdmin &&
+    (
+      !championship ||
+      !id ||
+      Number(entry?.id_usuario) ===
+        Number(usuario?.id)
+    )
 
   async function loadSports() {
     setLoading(true)
     setLoadError('')
 
     try {
-      const [sports, record] = await Promise.all([
-        request<Sport[]>('esportes'),
-        id
-          ? request<Entry>(`${kind}/${id}`)
-          : Promise.resolve(null)
-      ])
+      const [sports, record] =
+        await Promise.all([
+          request<Sport[]>('esportes'),
+
+          id
+            ? request<Entry>(
+                `${kind}/${id}`
+              )
+            : Promise.resolve(null)
+        ])
 
       setSports(sports)
       setEntry(record)
-      setStart(record?.data_inicial?.slice(0, 10) || '')
+
+      setStart(
+        record?.data_inicial?.slice(
+          0,
+          10
+        ) || ''
+      )
     } catch (error) {
       setLoadError(
         error instanceof Error
@@ -448,60 +653,88 @@ export function ManagementForm({
 
   useEffect(() => {
     void loadSports()
-  }, [kind, id])
+  }, [kind, id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault()
+
+    if (!canManage) {
+      setError(
+        'Você não tem permissão para alterar este campeonato.'
+      )
+
+      return
+    }
 
     if (saving) return
 
-    const values = Object.fromEntries(
-      new FormData(event.currentTarget)
-    )
+    const values =
+      Object.fromEntries(
+        new FormData(
+          event.currentTarget
+        )
+      )
 
     const body = {
       ...values,
-      id_esporte: Number(values.id_esporte)
+
+      id_esporte:
+        Number(
+          values.id_esporte
+        )
     }
 
     setError('')
     setSaving(true)
 
     try {
-      const result = await request<{
-        mensagem: string
-        id_campeonato?: number
-        id_time?: number
-      }>(
-        id ? `${kind}/${id}` : kind,
-        {
-          method: id ? 'PUT' : 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(body)
-        }
-      )
+      const result =
+        await request<{
+          mensagem: string
+          id_campeonato?: number
+          id_time?: number
+        }>(
+          id
+            ? `${kind}/${id}`
+            : kind,
+          {
+            method: id
+              ? 'PUT'
+              : 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify(body)
+          }
+        )
 
       setSavedId(
         id ||
-        result.id_campeonato ||
-        result.id_time
+          result.id_campeonato ||
+          result.id_time
       )
 
-      setSuccess(result.mensagem)
+      setSuccess(
+        result.mensagem
+      )
+
     } catch (error) {
       setError(
         error instanceof Error
           ? error.message
           : 'Erro ao salvar dados.'
       )
+
     } finally {
       setSaving(false)
     }
   }
-
-  const championship = kind === 'campeonatos'
 
   return (
     <Shell>
@@ -510,6 +743,7 @@ export function ManagementForm({
         href={`/${kind}`}
       >
         <ArrowLeft className="size-4" />
+
         Voltar para {kind}
       </Link>
 
@@ -519,7 +753,40 @@ export function ManagementForm({
         editing={!!id}
       />
 
-      {success ? (
+      {adminLoading ||
+      loading ? (
+        <p
+          role="status"
+          className="arena-empty"
+        >
+          Carregando formulário...
+        </p>
+      ) : id &&
+        championship &&
+        !canManage ? (
+        <section
+          className="arena-empty"
+          role="alert"
+        >
+          <Shield className="mx-auto mb-4 size-10 text-[#829c38]" />
+
+          <h2 className="font-display text-2xl font-bold">
+            Acesso não permitido
+          </h2>
+
+          <p className="mt-2 text-sm text-[#7d8378]">
+            Este campeonato pertence a
+            outro administrador.
+          </p>
+
+          <Link
+            className="arena-secondary mt-5"
+            href="/campeonatos"
+          >
+            Voltar para meus campeonatos
+          </Link>
+        </section>
+      ) : success ? (
         <section
           className="arena-empty"
           role="status"
@@ -531,31 +798,31 @@ export function ManagementForm({
           </h2>
 
           <p className="mt-3 text-sm text-[#747b70]">
-            Tudo pronto! O cadastro já está disponível na listagem.
+            Tudo pronto! O cadastro já está
+            disponível na listagem.
           </p>
 
           <Link
             className="arena-primary mt-6"
             href={`/${kind}/${savedId}`}
           >
-            Abrir {labels[kind].singular}
+            Abrir{' '}
+            {
+              labels[kind]
+                .singular
+            }
+
             <ArrowRight className="size-4" />
           </Link>
         </section>
-      ) : loading ? (
-        <p
-          role="status"
-          className="arena-empty"
-        >
-          Carregando formulário...
-        </p>
       ) : id && !entry ? (
         <div
           className="arena-empty"
           role="alert"
         >
           <p>
-            {loadError || 'Cadastro não encontrado.'}
+            {loadError ||
+              'Cadastro não encontrado.'}
           </p>
 
           <button
@@ -579,7 +846,8 @@ export function ManagementForm({
             </h2>
 
             <p className="mb-7 mt-2 text-xs text-[#7d8378]">
-              Preencha os campos abaixo. Os campos com * são obrigatórios.
+              Preencha os campos abaixo.
+              Os campos com * são obrigatórios.
             </p>
 
             {loadError && (
@@ -599,14 +867,18 @@ export function ManagementForm({
               </div>
             )}
 
-            {!loading && !loadError && !sports.length && (
-              <p
-                role="alert"
-                className="mb-5 text-sm text-red-800"
-              >
-                Nenhum esporte disponível. Cadastre os esportes no banco antes de continuar.
-              </p>
-            )}
+            {!loading &&
+              !loadError &&
+              !sports.length && (
+                <p
+                  role="alert"
+                  className="mb-5 text-sm text-red-800"
+                >
+                  Nenhum esporte disponível.
+                  Cadastre os esportes no banco
+                  antes de continuar.
+                </p>
+              )}
 
             <fieldset
               disabled={saving}
@@ -614,14 +886,20 @@ export function ManagementForm({
             >
               <Field
                 name="nome"
-                label={championship ? 'Nome do campeonato' : 'Nome do time'}
+                label={
+                  championship
+                    ? 'Nome do campeonato'
+                    : 'Nome do time'
+                }
                 required
               >
                 <input
                   className="arena-input"
                   id="nome"
                   name="nome"
-                  defaultValue={entry?.nome || ''}
+                  defaultValue={
+                    entry?.nome || ''
+                  }
                   required
                   minLength={2}
                   maxLength={150}
@@ -642,9 +920,14 @@ export function ManagementForm({
                   className="arena-input"
                   name="id_esporte"
                   id="id_esporte"
-                  defaultValue={entry?.id_esporte || ''}
+                  defaultValue={
+                    entry?.id_esporte || ''
+                  }
                   required
-                  disabled={loading || !!loadError}
+                  disabled={
+                    loading ||
+                    !!loadError
+                  }
                 >
                   <option
                     value=""
@@ -655,14 +938,20 @@ export function ManagementForm({
                       : 'Selecione o esporte'}
                   </option>
 
-                  {sports.map(sport => (
-                    <option
-                      key={sport.id_esporte}
-                      value={sport.id_esporte}
-                    >
-                      {sport.nome}
-                    </option>
-                  ))}
+                  {sports.map(
+                    sport => (
+                      <option
+                        key={
+                          sport.id_esporte
+                        }
+                        value={
+                          sport.id_esporte
+                        }
+                      >
+                        {sport.nome}
+                      </option>
+                    )
+                  )}
                 </select>
               </Field>
 
@@ -683,7 +972,11 @@ export function ManagementForm({
                         min="1000-01-01"
                         max="9999-12-31"
                         value={start}
-                        onChange={e => setStart(e.target.value)}
+                        onChange={e =>
+                          setStart(
+                            e.target.value
+                          )
+                        }
                       />
                     </Field>
 
@@ -697,8 +990,16 @@ export function ManagementForm({
                         type="date"
                         name="data_fim"
                         id="data_fim"
-                        defaultValue={entry?.data_fim?.slice(0, 10) || ''}
-                        min={start || '1000-01-01'}
+                        defaultValue={
+                          entry?.data_fim?.slice(
+                            0,
+                            10
+                          ) || ''
+                        }
+                        min={
+                          start ||
+                          '1000-01-01'
+                        }
                         max="9999-12-31"
                         required
                       />
@@ -707,23 +1008,37 @@ export function ManagementForm({
 
                   <Field
                     name="status"
-                    label={id ? 'Status' : 'Status inicial'}
+                    label={
+                      id
+                        ? 'Status'
+                        : 'Status inicial'
+                    }
                     required
                   >
                     <select
                       className="arena-input"
                       name="status"
                       id="status"
-                      defaultValue={entry?.status || 'PLANEJADO'}
+                      defaultValue={
+                        entry?.status ||
+                        'PLANEJADO'
+                      }
                     >
-                      {Object.entries(statuses).map(([key, label]) => (
-                        <option
-                          key={key}
-                          value={key}
-                        >
-                          {label}
-                        </option>
-                      ))}
+                      {Object.entries(
+                        statuses
+                      ).map(
+                        ([
+                          key,
+                          label
+                        ]) => (
+                          <option
+                            key={key}
+                            value={key}
+                          >
+                            {label}
+                          </option>
+                        )
+                      )}
                     </select>
                   </Field>
                 </>
@@ -738,7 +1053,10 @@ export function ManagementForm({
                         className="arena-input"
                         name="nome_abreviado"
                         id="nome_abreviado"
-                        defaultValue={entry?.nome_abreviado || ''}
+                        defaultValue={
+                          entry?.nome_abreviado ||
+                          ''
+                        }
                         maxLength={30}
                         placeholder="Ex.: ECP"
                       />
@@ -752,7 +1070,9 @@ export function ManagementForm({
                         className="arena-input"
                         name="cidade"
                         id="cidade"
-                        defaultValue={entry?.cidade || ''}
+                        defaultValue={
+                          entry?.cidade || ''
+                        }
                         maxLength={100}
                         placeholder="Ex.: São Paulo"
                       />
@@ -768,13 +1088,16 @@ export function ManagementForm({
                       type="url"
                       name="escudo_url"
                       id="escudo_url"
-                      defaultValue={entry?.escudo_url || ''}
+                      defaultValue={
+                        entry?.escudo_url || ''
+                      }
                       maxLength={500}
                       placeholder="https://exemplo.com/escudo.png"
                     />
 
                     <p className="mt-2 text-xs text-[#7d8378]">
-                      Opcional. Use um endereço HTTP ou HTTPS.
+                      Opcional. Use um endereço
+                      HTTP ou HTTPS.
                     </p>
                   </Field>
                 </>
@@ -788,7 +1111,9 @@ export function ManagementForm({
                   className="arena-input min-h-28 resize-y"
                   id="descricao"
                   name="descricao"
-                  defaultValue={entry?.descricao || ''}
+                  defaultValue={
+                    entry?.descricao || ''
+                  }
                   maxLength={5000}
                   rows={4}
                   placeholder={
@@ -811,7 +1136,11 @@ export function ManagementForm({
               <div className="mt-2 flex flex-wrap items-center justify-end gap-3 border-t border-[#e5e7dd] pt-5">
                 <Link
                   className="arena-secondary"
-                  href={id ? `/${kind}/${id}` : `/${kind}`}
+                  href={
+                    id
+                      ? `/${kind}/${id}`
+                      : `/${kind}`
+                  }
                 >
                   Cancelar
                 </Link>
@@ -855,7 +1184,11 @@ export function ManagementForm({
 
             <Link
               className="mt-5 inline-flex items-center gap-2 text-xs font-bold"
-              href={championship ? '/times/novo' : '/campeonatos/novo'}
+              href={
+                championship
+                  ? '/times/novo'
+                  : '/campeonatos/novo'
+              }
             >
               {championship
                 ? 'Cadastre também seus times'
@@ -869,7 +1202,6 @@ export function ManagementForm({
     </Shell>
   )
 }
-
 export function ManagementDetail({
   kind,
   id
@@ -877,22 +1209,44 @@ export function ManagementDetail({
   kind: Kind
   id: string
 }) {
-  const { isAdmin } = useAdmin()
+  const {
+    usuario,
+    isAdmin
+  } = useAdmin()
 
-  const dialog = useRef<HTMLDialogElement>(null)
-  const [entry, setEntry] = useState<Entry | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState('')
-  const [deleted, setDeleted] = useState(false)
+  const dialog =
+    useRef<HTMLDialogElement>(null)
+
+  const [entry, setEntry] =
+    useState<Entry | null>(null)
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [error, setError] =
+    useState('')
+
+  const [deleting, setDeleting] =
+    useState(false)
+
+  const [
+    deleteError,
+    setDeleteError
+  ] = useState('')
+
+  const [deleted, setDeleted] =
+    useState(false)
 
   async function load() {
     setLoading(true)
     setError('')
 
     try {
-      setEntry(await request<Entry>(`${kind}/${id}`))
+      setEntry(
+        await request<Entry>(
+          `${kind}/${id}`
+        )
+      )
     } catch (error) {
       setError(
         error instanceof Error
@@ -906,33 +1260,56 @@ export function ManagementDetail({
 
   useEffect(() => {
     void load()
-  }, [kind, id])
+  }, [kind, id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const championship =
+    kind === 'campeonatos'
+
+  const canManage =
+    isAdmin &&
+    (
+      !championship ||
+      Number(entry?.id_usuario) ===
+        Number(usuario?.id)
+    )
 
   async function remove() {
+    if (!canManage) {
+      setDeleteError(
+        'Você não tem permissão para excluir este campeonato.'
+      )
+
+      return
+    }
+
     if (deleting) return
 
     setDeleting(true)
     setDeleteError('')
 
     try {
-      await request(`${kind}/${id}`, {
-        method: 'DELETE'
-      })
+      await request(
+        `${kind}/${id}`,
+        {
+          method: 'DELETE'
+        }
+      )
 
       dialog.current?.close()
+
       setDeleted(true)
+
     } catch (error) {
       setDeleteError(
         error instanceof Error
           ? error.message
           : 'Não foi possível excluir.'
       )
+
     } finally {
       setDeleting(false)
     }
   }
-
-  const championship = kind === 'campeonatos'
 
   return (
     <Shell>
@@ -941,6 +1318,7 @@ export function ManagementDetail({
         href={`/${kind}`}
       >
         <ArrowLeft className="size-4" />
+
         Voltar para {kind}
       </Link>
 
@@ -963,6 +1341,7 @@ export function ManagementDetail({
             href={`/${kind}`}
           >
             Voltar para {kind}
+
             <ArrowRight className="size-4" />
           </Link>
         </section>
@@ -971,7 +1350,9 @@ export function ManagementDetail({
           className="arena-empty"
           role="status"
         >
-          Carregando {labels[kind].singular}...
+          Carregando{' '}
+          {labels[kind].singular}
+          ...
         </p>
       ) : error || !entry ? (
         <section
@@ -979,7 +1360,8 @@ export function ManagementDetail({
           role="alert"
         >
           <p>
-            {error || 'Cadastro não encontrado.'}
+            {error ||
+              'Cadastro não encontrado.'}
           </p>
 
           <button
@@ -993,7 +1375,8 @@ export function ManagementDetail({
         <>
           <section className="organizer-panel relative overflow-hidden rounded-2xl bg-[#19382b] p-6 text-white sm:p-9">
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#d7f36a]">
-              {entry.esporte || 'Esporte não informado'}
+              {entry.esporte ||
+                'Esporte não informado'}
             </p>
 
             <h1 className="font-display break-words text-4xl font-bold tracking-tight sm:text-5xl">
@@ -1004,18 +1387,31 @@ export function ManagementDetail({
               {championship ? (
                 <>
                   <span className="status-dot">
-                    {statuses[entry.status || '']}
+                    {
+                      statuses[
+                        entry.status || ''
+                      ]
+                    }
                   </span>
 
                   <span className="inline-flex items-center gap-2 text-sm text-white/75">
                     <CalendarDays className="size-4" />
-                    {formatDate(entry.data_inicial)} — {formatDate(entry.data_fim)}
+
+                    {formatDate(
+                      entry.data_inicial
+                    )}{' '}
+                    —{' '}
+                    {formatDate(
+                      entry.data_fim
+                    )}
                   </span>
                 </>
               ) : (
                 <span className="inline-flex items-center gap-2 text-sm text-white/75">
                   <MapPin className="size-4" />
-                  {entry.cidade || 'Cidade não informada'}
+
+                  {entry.cidade ||
+                    'Cidade não informada'}
                 </span>
               )}
             </div>
@@ -1023,29 +1419,44 @@ export function ManagementDetail({
 
           <div className="my-6 flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm text-[#747b70]">
-              {isAdmin
-                ? `Gerencie as informações ${championship ? 'da competição' : 'da equipe'}.`
-                : `Informações ${championship ? 'da competição' : 'da equipe'}.`}
+              {canManage
+                ? `Gerencie as informações ${
+                    championship
+                      ? 'da competição'
+                      : 'da equipe'
+                  }.`
+                : `Informações ${
+                    championship
+                      ? 'da competição'
+                      : 'da equipe'
+                  }.`}
             </p>
 
-            {isAdmin && (
+            {canManage && (
               <div className="flex flex-wrap gap-3">
                 <Link
                   className="arena-primary"
                   href={`/${kind}/${id}/editar`}
                 >
                   <Pencil className="size-4" />
-                  Editar {labels[kind].singular}
+
+                  Editar{' '}
+                  {
+                    labels[kind]
+                      .singular
+                  }
                 </Link>
 
                 <button
                   className="arena-secondary text-red-800!"
                   onClick={() => {
                     setDeleteError('')
+
                     dialog.current?.showModal()
                   }}
                 >
                   <Trash2 className="size-4" />
+
                   Excluir
                 </button>
               </div>
@@ -1062,7 +1473,7 @@ export function ManagementDetail({
 
               <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-[#747b70]">
                 {entry.descricao ||
-                  'Nenhuma descrição adicionada. Edite o cadastro para contar mais sobre essa história.'}
+                  'Nenhuma descrição adicionada.'}
               </p>
 
               <dl className="mt-6 grid gap-5 border-t border-[#e5e7dd] pt-6 sm:grid-cols-2">
@@ -1072,7 +1483,8 @@ export function ManagementDetail({
                   </dt>
 
                   <dd className="mt-1 font-semibold">
-                    {entry.esporte || 'Não informado'}
+                    {entry.esporte ||
+                      'Não informado'}
                   </dd>
                 </div>
 
@@ -1084,7 +1496,11 @@ export function ManagementDetail({
                       </dt>
 
                       <dd className="mt-1 font-semibold">
-                        {statuses[entry.status || '']}
+                        {
+                          statuses[
+                            entry.status || ''
+                          ]
+                        }
                       </dd>
                     </div>
 
@@ -1094,7 +1510,9 @@ export function ManagementDetail({
                       </dt>
 
                       <dd className="mt-1 font-semibold">
-                        {formatDate(entry.data_inicial)}
+                        {formatDate(
+                          entry.data_inicial
+                        )}
                       </dd>
                     </div>
 
@@ -1104,7 +1522,9 @@ export function ManagementDetail({
                       </dt>
 
                       <dd className="mt-1 font-semibold">
-                        {formatDate(entry.data_fim)}
+                        {formatDate(
+                          entry.data_fim
+                        )}
                       </dd>
                     </div>
                   </>
@@ -1116,7 +1536,8 @@ export function ManagementDetail({
                       </dt>
 
                       <dd className="mt-1 break-words font-semibold">
-                        {entry.nome_abreviado || 'Não informado'}
+                        {entry.nome_abreviado ||
+                          'Não informado'}
                       </dd>
                     </div>
 
@@ -1126,7 +1547,8 @@ export function ManagementDetail({
                       </dt>
 
                       <dd className="mt-1 break-words font-semibold">
-                        {entry.cidade || 'Não informada'}
+                        {entry.cidade ||
+                          'Não informada'}
                       </dd>
                     </div>
                   </>
@@ -1140,7 +1562,10 @@ export function ManagementDetail({
                   {(entry.nome_abreviado ||
                     entry.nome
                       .split(' ')
-                      .map(word => word[0])
+                      .map(
+                        word =>
+                          word[0]
+                      )
                       .join(''))
                     .slice(0, 3)
                     .toUpperCase()}
@@ -1155,12 +1580,15 @@ export function ManagementDetail({
 
               {entry.escudo_url ? (
                 <a
-                  href={entry.escudo_url}
+                  href={
+                    entry.escudo_url
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="arena-secondary mt-4"
                 >
                   Abrir escudo
+
                   <ArrowRight className="size-4" />
                 </a>
               ) : (
@@ -1180,22 +1608,34 @@ export function ManagementDetail({
             />
           )}
 
-          {championship && entry.id_esporte ? (
+          {championship &&
+          entry.id_esporte ? (
             <EntriesSection
               championshipId={id}
-              sportId={entry.id_esporte}
+              sportId={
+                entry.id_esporte
+              }
               sport={entry.esporte}
             />
           ) : null}
 
-          {isAdmin && (
+          {championship && (
+            <MatchesSection
+              championshipId={id}
+              canManage={canManage}
+            />
+          )}
+
+          {canManage && (
             <dialog
               ref={dialog}
               aria-labelledby="delete-title"
               aria-describedby="delete-description"
               className="arena-dialog"
               onCancel={event => {
-                if (deleting) event.preventDefault()
+                if (deleting) {
+                  event.preventDefault()
+                }
               }}
             >
               <div className="p-6 sm:p-8">
@@ -1205,7 +1645,12 @@ export function ManagementDetail({
                   id="delete-title"
                   className="font-display text-2xl font-bold"
                 >
-                  Excluir {labels[kind].singular}?
+                  Excluir{' '}
+                  {
+                    labels[kind]
+                      .singular
+                  }
+                  ?
                 </h2>
 
                 <p
@@ -1213,8 +1658,11 @@ export function ManagementDetail({
                   className="mt-3 break-words text-sm leading-6 text-[#747b70]"
                 >
                   Você está prestes a excluir{' '}
-                  <strong>{entry.nome}</strong>.
-                  Essa ação não pode ser desfeita.
+
+                  <strong>
+                    {entry.nome}
+                  </strong>
+                  . Essa ação não pode ser desfeita.
                 </p>
 
                 {deleteError && (
@@ -1231,7 +1679,9 @@ export function ManagementDetail({
                     autoFocus
                     className="arena-secondary"
                     disabled={deleting}
-                    onClick={() => dialog.current?.close()}
+                    onClick={() =>
+                      dialog.current?.close()
+                    }
                   >
                     Cancelar
                   </button>
