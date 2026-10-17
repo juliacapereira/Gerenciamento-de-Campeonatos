@@ -8,6 +8,8 @@ import {
 
 import {
   ArrowRight,
+  CalendarDays,
+  MapPin,
   Shield,
   Swords,
   Trophy
@@ -26,6 +28,8 @@ type Match = {
   id_time_b: number
   time_a: string
   time_b: string
+  data_hora?: string | null
+  local?: string | null
 }
 
 type Props = {
@@ -80,6 +84,10 @@ export function MatchesSection({
 
   const [teamB, setTeamB] =
     useState('')
+  
+  const [dateTime, setDateTime] = useState('')
+
+  const [location, setLocation] = useState('')
 
   const [loading, setLoading] =
     useState(true)
@@ -154,6 +162,11 @@ export function MatchesSection({
       return
     }
 
+    if (!dateTime) {
+      setError('Informe a data e o horário da partida.')
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -176,7 +189,11 @@ export function MatchesSection({
                 Number(teamA),
 
               id_time_b:
-                Number(teamB)
+                Number(teamB),
+              
+              data_hora: dateTime,
+
+              local: location
             })
           }
         )
@@ -185,6 +202,8 @@ export function MatchesSection({
 
       setTeamA('')
       setTeamB('')
+      setDateTime('')
+      setLocation('')
 
       const updatedMatches =
         await request<Match[]>(
@@ -361,7 +380,46 @@ export function MatchesSection({
                       ))}
                     </select>
                   </div>
-                </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="data_hora"
+                        className="mb-2 block text-xs font-bold"
+                      >
+                        Data e Horário <span className="text-[#829c38]">*</span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        id="data_hora"
+                        className="arena-input"
+                        value={dateTime}
+                        disabled={saving}
+                        required
+                        onChange={event => setDateTime(event.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="local"
+                        className="mb-2 block text-xs font-bold"
+                      >
+                        Local da Partida
+                      </label>
+                      <input
+                        type="text"
+                        id="local"
+                        className="arena-input"
+                        placeholder="Ex.: Quadra Principal, Ginásio..."
+                        maxLength={255}
+                        value={location}
+                        disabled={saving}
+                        onChange={event => setLocation(event.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>  
+                
               )}
 
 
@@ -394,6 +452,7 @@ export function MatchesSection({
                       saving ||
                       !teamA ||
                       !teamB ||
+                      !dateTime ||
                       teamA === teamB
                     }
                   >
@@ -499,6 +558,23 @@ export function MatchesSection({
                       </div>
 
                     </div>
+                    {(match.data_hora || match.local) && (
+                      <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-[#e5e7dd] pt-3 text-xs text-[#7d8378]">
+                        {match.data_hora && (
+                          <span className="inline-flex items-center gap-1.5 font-semibold">
+                            <CalendarDays className="size-4 text-[#829c38]" />
+                            {new Date(match.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                          </span>
+                        )}
+
+                        {match.local && (
+                          <span className="inline-flex items-center gap-1.5 font-semibold">
+                            <MapPin className="size-4 text-[#829c38]" />
+                            {match.local}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                   </article>
                 ))}
