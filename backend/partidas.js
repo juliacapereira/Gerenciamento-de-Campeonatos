@@ -41,6 +41,9 @@ export function registerMatchRoutes(app, pool) {
               p.id_campeonato,
               p.id_time_a,
               p.id_time_b,
+              p.data_hora,
+              p.local,
+              p.status,
               ta.nome AS time_a,
               tb.nome AS time_b
             FROM partida p
@@ -85,6 +88,8 @@ export function registerMatchRoutes(app, pool) {
       const idTimeB =
         Number(req.body.id_time_b);
 
+        const { data_hora, local } = req.body;
+
       if (!validId(idCampeonato)) {
         return res.status(400).json({
           erro: 'Identificador de campeonato inválido.',
@@ -103,6 +108,12 @@ export function registerMatchRoutes(app, pool) {
       if (idTimeA === idTimeB) {
         return res.status(400).json({
           erro: 'Os times da partida devem ser diferentes.',
+        });
+      }
+
+      if (!data_hora) {
+        return res.status(400).json({
+          erro: 'Informe a data e o horário da partida.',
         });
       }
 
@@ -185,6 +196,23 @@ export function registerMatchRoutes(app, pool) {
           });
         }
 
+        const [conflitos] = await connection.execute(
+          `
+            SELECT id_partida 
+            FROM partida 
+            WHERE data_hora = ? 
+              AND (id_time_a IN (?, ?) OR id_time_b IN (?, ?))
+          `,
+          [data_hora, idTimeA, idTimeB, idTimeA, idTimeB]
+        );
+
+        if (conflitos.length > 0) {
+          await connection.rollback();
+          return res.status(400).json({
+            erro: 'Conflito de agenda: Um dos times já possui partida agendada neste mesmo horário.',
+          });
+        }
+
 
         // ------------------------------------------------------
         // Cadastra a partida
@@ -197,14 +225,18 @@ export function registerMatchRoutes(app, pool) {
                 (
                   id_campeonato,
                   id_time_a,
-                  id_time_b
+                  id_time_b,
+                  data_hora, 
+                  local
                 )
-              VALUES (?, ?, ?)
+              VALUES (?, ?, ?, ?, ?)
             `,
             [
               idCampeonato,
               idTimeA,
               idTimeB,
+              data_hora,
+            local?.trim() || null
             ]
           );
 
