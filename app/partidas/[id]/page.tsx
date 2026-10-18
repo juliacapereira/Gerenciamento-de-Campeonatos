@@ -12,6 +12,7 @@ import {
   Shield,
   Trophy,
   History,
+  Users,
 } from 'lucide-react'
 
 type Partida = {
@@ -32,15 +33,48 @@ type Acontecimento = {
   id_acontecimento: number
   id_time: number | null
   id_jogador: number | null
+  jogador: string | null
   tipo: string
   minuto: number | null
   descricao: string | null
   criado_em: string
 }
 
+type Pontuacao = {
+  id_pontuacao: number
+  id_time: number
+  id_jogador: number | null
+  jogador: string | null
+  quantidade: number
+  minuto: number | null
+  criado_em: string
+}
+
+type Atleta = {
+  id_jogador: number
+  nome: string
+  numero_camisa: number | null
+  posicao: string | null
+}
+
 type DetalhesResponse = {
   partida: Partida
   acontecimentos: Acontecimento[]
+  pontuacoes: Pontuacao[]
+  escalacoes: {
+    time_a: Atleta[]
+    time_b: Atleta[]
+  }
+}
+
+type ItemHistorico = {
+  chave: string
+  minuto: number | null
+  criado_em: string
+  titulo: string
+  id_time: number | null
+  jogador: string | null
+  descricao: string | null
 }
 
 const statusLabels: Record<string, string> = {
@@ -143,11 +177,40 @@ export default function PartidaDetalhesPage() {
     )
   }
 
-  const { partida, acontecimentos } = data
+  const { partida, escalacoes } = data
 
-  const hasScore =
+    const hasScore =
     partida.placar_time_a !== null &&
     partida.placar_time_b !== null
+
+  // Gols/pontos e acontecimentos formam uma única linha do tempo.
+  const historico: ItemHistorico[] = [
+    ...(data.pontuacoes ?? []).map((gol) => ({
+      chave: `p-${gol.id_pontuacao}`,
+      minuto: gol.minuto,
+      criado_em: gol.criado_em,
+      titulo: gol.quantidade > 1 ? `Gol/ponto (+${gol.quantidade})` : 'Gol/ponto',
+      id_time: gol.id_time,
+      jogador: gol.jogador,
+      descricao: null,
+    })),
+    ...(data.acontecimentos ?? []).map((item) => ({
+      chave: `a-${item.id_acontecimento}`,
+      minuto: item.minuto,
+      criado_em: item.criado_em,
+      titulo: item.tipo,
+      id_time: item.id_time,
+      jogador: item.jogador,
+      descricao: item.descricao,
+    })),
+  ].sort((a, b) => {
+    if (a.minuto === null && b.minuto !== null) return 1
+    if (a.minuto !== null && b.minuto === null) return -1
+    if (a.minuto !== null && b.minuto !== null && a.minuto !== b.minuto) {
+      return a.minuto - b.minuto
+    }
+    return a.criado_em.localeCompare(b.criado_em)
+  })
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -242,6 +305,58 @@ export default function PartidaDetalhesPage() {
         </div>
       </section>
 
+            <section className="mt-6 rounded-2xl border border-[#e5e7dd] bg-white p-6 sm:p-8">
+        <div className="flex items-center gap-3">
+          <Users className="size-6 text-[#789339]" />
+          <div>
+            <h2 className="font-display text-xl font-bold">
+              Escalações
+            </h2>
+            <p className="mt-1 text-sm text-[#747b70]">
+              Elenco ativo de cada equipe.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          {[
+            { nome: partida.time_a, atletas: escalacoes?.time_a ?? [] },
+            { nome: partida.time_b, atletas: escalacoes?.time_b ?? [] },
+          ].map((time) => (
+            <div key={time.nome}>
+              <h3 className="font-display font-bold">{time.nome}</h3>
+
+              {time.atletas.length === 0 ? (
+                <p className="mt-3 rounded-xl bg-[#f5f6f0] p-4 text-sm text-[#747b70]">
+                  Nenhum jogador no elenco.
+                </p>
+              ) : (
+                <ul className="mt-3 divide-y divide-[#e5e7dd] rounded-xl border border-[#e5e7dd]">
+                  {time.atletas.map((atleta) => (
+                    <li
+                      key={atleta.id_jogador}
+                      className="flex items-center gap-3 px-4 py-3 text-sm"
+                    >
+                      <span className="w-8 shrink-0 text-center font-bold text-[#526d32]">
+                        {atleta.numero_camisa ?? '–'}
+                      </span>
+                      <span className="min-w-0 flex-1 break-words font-semibold">
+                        {atleta.nome}
+                      </span>
+                      {atleta.posicao && (
+                        <span className="shrink-0 text-xs text-[#747b70]">
+                          {atleta.posicao}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="mt-6 rounded-2xl border border-[#e5e7dd] bg-white p-6 sm:p-8">
         <div className="flex items-center gap-3">
           <History className="size-6 text-[#789339]" />
@@ -255,7 +370,7 @@ export default function PartidaDetalhesPage() {
           </div>
         </div>
 
-        {acontecimentos.length === 0 ? (
+        {historico.length === 0 ? (
           <div className="mt-6 rounded-xl bg-[#f5f6f0] p-5 text-center">
             <Trophy className="mx-auto mb-3 size-7 text-[#789339]" />
             <p className="text-sm font-semibold">
@@ -267,7 +382,7 @@ export default function PartidaDetalhesPage() {
           </div>
         ) : (
           <ol className="mt-6 space-y-4">
-            {acontecimentos.map((item) => {
+            {historico.map((item) => {
               const teamName =
                 item.id_time === partida.id_time_a
                   ? partida.time_a
@@ -277,7 +392,7 @@ export default function PartidaDetalhesPage() {
 
               return (
                 <li
-                  key={item.id_acontecimento}
+                  key={item.chave}
                   className="rounded-xl border border-[#e5e7dd] p-4"
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -287,10 +402,16 @@ export default function PartidaDetalhesPage() {
                       </span>
                     )}
 
-                    <span className="font-semibold">
-                      {item.tipo}
+                   <span className="font-semibold">
+                      {item.titulo}
                     </span>
                   </div>
+
+                  {item.jogador && (
+                    <p className="mt-2 text-sm font-semibold">
+                      Jogador: {item.jogador}
+                    </p>
+                  )}
 
                   {teamName && (
                     <p className="mt-2 text-sm text-[#526d32]">
