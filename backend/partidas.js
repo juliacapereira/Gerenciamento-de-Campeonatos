@@ -262,4 +262,95 @@ export function registerMatchRoutes(app, pool) {
       }
     }
   );
+
+  // ============================================================
+  // GET /api/partidas/:id
+  // Detalhes consolidados de uma partida
+  // Público
+  // ============================================================
+
+  app.get(
+    '/api/partidas/:id',
+    async (req, res, next) => {
+      if (!validId(req.params.id)) {
+        return res.status(400).json({
+          erro: 'Identificador de partida inválido.',
+        });
+      }
+
+      try {
+        const [partidas] = await pool.execute(
+          `
+            SELECT
+              p.id_partida,
+              p.id_campeonato,
+              p.id_time_a,
+              p.id_time_b,
+              p.data_hora,
+              p.local,
+              p.status,
+              p.criado_em,
+              p.atualizado_em,
+
+              ta.nome AS time_a,
+              tb.nome AS time_b,
+
+              r.id_resultado,
+              r.placar_time_a,
+              r.placar_time_b,
+              r.registrado_em AS resultado_registrado_em,
+              r.atualizado_em AS resultado_atualizado_em
+
+            FROM partida p
+
+            INNER JOIN time ta
+              ON ta.id_time = p.id_time_a
+
+            INNER JOIN time tb
+              ON tb.id_time = p.id_time_b
+
+            LEFT JOIN resultado r
+              ON r.id_partida = p.id_partida
+
+            WHERE p.id_partida = ?
+            LIMIT 1
+          `,
+          [req.params.id]
+        );
+
+        if (!partidas.length) {
+          return res.status(404).json({
+            erro: 'Partida não encontrada.',
+          });
+        }
+
+        const [acontecimentos] = await pool.execute(
+          `
+            SELECT
+              id_acontecimento,
+              id_time,
+              id_jogador,
+              tipo,
+              minuto,
+              descricao,
+              criado_em
+            FROM acontecimento
+            WHERE id_partida = ?
+            ORDER BY
+              minuto IS NULL ASC,
+              minuto ASC,
+              criado_em ASC
+          `,
+          [req.params.id]
+        );
+
+        return res.json({
+          partida: partidas[0],
+          acontecimentos,
+        });
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
 }
