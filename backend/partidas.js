@@ -323,30 +323,89 @@ export function registerMatchRoutes(app, pool) {
             erro: 'Partida não encontrada.',
           });
         }
+                const partida = partidas[0];
 
         const [acontecimentos] = await pool.execute(
           `
             SELECT
-              id_acontecimento,
-              id_time,
-              id_jogador,
-              tipo,
-              minuto,
-              descricao,
-              criado_em
-            FROM acontecimento
-            WHERE id_partida = ?
+              a.id_acontecimento,
+              a.id_time,
+              a.id_jogador,
+              j.nome AS jogador,
+              a.tipo,
+              a.minuto,
+              a.descricao,
+              a.criado_em
+            FROM acontecimento a
+            LEFT JOIN jogador j
+              ON j.id_jogador = a.id_jogador
+            WHERE a.id_partida = ?
             ORDER BY
-              minuto IS NULL ASC,
-              minuto ASC,
-              criado_em ASC
+              a.minuto IS NULL ASC,
+              a.minuto ASC,
+              a.criado_em ASC
           `,
           [req.params.id]
         );
 
+        const [pontuacoes] = await pool.execute(
+          `
+            SELECT
+              pt.id_pontuacao,
+              pt.id_time,
+              pt.id_jogador,
+              j.nome AS jogador,
+              pt.quantidade,
+              pt.minuto,
+              pt.criado_em
+            FROM pontuacao pt
+            LEFT JOIN jogador j
+              ON j.id_jogador = pt.id_jogador
+            WHERE pt.id_partida = ?
+            ORDER BY
+              pt.minuto IS NULL ASC,
+              pt.minuto ASC,
+              pt.criado_em ASC
+          `,
+          [req.params.id]
+        );
+
+        // Não há tabela de escalação por partida: usa-se o elenco ativo
+        // de cada time (US08), que é o que está disponível no banco.
+        const [elenco] = await pool.execute(
+          `
+            SELECT
+              e.id_time,
+              j.id_jogador,
+              j.nome,
+              j.foto_url,
+              e.numero_camisa,
+              COALESCE(e.posicao, j.posicao) AS posicao
+            FROM elenco e
+            INNER JOIN jogador j
+              ON j.id_jogador = e.id_jogador
+            WHERE e.id_time IN (?, ?)
+              AND e.ativo = TRUE
+            ORDER BY
+              e.numero_camisa IS NULL ASC,
+              e.numero_camisa ASC,
+              j.nome ASC
+          `,
+          [partida.id_time_a, partida.id_time_b]
+        );
+
         return res.json({
-          partida: partidas[0],
+          partida,
           acontecimentos,
+          pontuacoes,
+          escalacoes: {
+            time_a: elenco.filter(
+              item => item.id_time === partida.id_time_a
+            ),
+            time_b: elenco.filter(
+              item => item.id_time === partida.id_time_b
+            ),
+          },
         });
       } catch (error) {
         next(error);
