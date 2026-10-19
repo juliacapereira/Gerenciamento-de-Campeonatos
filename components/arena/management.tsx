@@ -20,6 +20,7 @@ import { Header, Footer } from './arena-home'
 import { SquadSection } from './elenco'
 import { EntriesSection } from './inscricoes'
 import { MatchesSection } from './partidas'
+import { ChampionshipSummary } from './calendario'
 import { useAdmin } from '@/hooks/use-admin'
 
 type Kind = 'campeonatos' | 'times'
@@ -1607,6 +1608,8 @@ export function ManagementDetail({
               sport={entry.esporte}
             />
           )}
+
+          {championship && <ChampionshipSummary id={id} />}
 
           {championship &&
           entry.id_esporte ? (
