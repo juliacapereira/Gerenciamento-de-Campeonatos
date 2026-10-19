@@ -12,14 +12,22 @@ type Championship = { id_campeonato: number; nome: string; esporte: string; data
 const championshipStatuses: Record<string, string> = { PLANEJADO: 'Planejado', INSCRICOES: 'Inscrições abertas', EM_ANDAMENTO: 'Em andamento', ENCERRADO: 'Encerrado' }
 type Summary = { campeonato: Championship; times: number; partidas: number; status: Record<string, number>; proximos_jogos: Match[]; ultimos_resultados: Match[] }
 const statuses: Record<string, string> = { AGENDADA: 'Agendada', EM_ANDAMENTO: 'Em andamento', ENCERRADA: 'Encerrada', ADIADA: 'Adiada', CANCELADA: 'Cancelada' }
-const date = (value: string) => new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR')
-
+const date = (value?: string | null) => {
+  if (!value) return 'Data a definir'
+  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR')
+}
 export function MatchList({ games, empty = 'Nenhuma partida encontrada.' }: { games: Match[]; empty?: string }) {
   if (!games.length) return <p className="py-5 text-sm text-[#7d8378]">{empty}</p>
   return <ul className="grid gap-3">{games.map(game => <li key={game.id_partida} className="rounded-xl border border-[#e5e7dd] bg-white p-5">
     <div className="flex flex-wrap justify-between gap-2 text-xs text-[#747b70]"><Link className="font-bold underline" href={`/campeonatos/${game.id_campeonato}`}>{game.campeonato} · {game.esporte}</Link><span>{statuses[game.status]}</span></div>
     <p className="my-3 flex flex-wrap items-center gap-3 font-bold"><Link href={`/times/${game.id_time_a}`}>{game.time_a}</Link><span className="rounded-lg bg-[#eef1e5] px-3 py-1">{game.placar_time_a !== null && game.placar_time_b !== null ? `${game.placar_time_a} × ${game.placar_time_b}` : '×'}</span><Link href={`/times/${game.id_time_b}`}>{game.time_b}</Link></p>
-    <p className="text-sm text-[#747b70]"><time dateTime={game.data_hora}>{date(game.data_hora)} às {game.data_hora.slice(11, 16)}</time> · {game.local || 'Local a definir'}</p>
+    {game.data_hora ? (
+  <p className="text-sm text-[#747b70]">
+    <time dateTime={game.data_hora}>{date(game.data_hora)}</time>
+  </p>
+) : (
+  <p className="text-sm text-[#747b70]">Data a definir</p>
+)}
   </li>)}</ul>
 }
 
