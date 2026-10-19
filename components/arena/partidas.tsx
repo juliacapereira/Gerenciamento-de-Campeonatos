@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import {
   useEffect,
@@ -520,12 +521,11 @@ export function MatchesSection({
               <div className="grid gap-4">
 
                 {matches.map(match => (
-                  <article
-                    key={
-                      match.id_partida
-                    }
-                    className="rounded-xl border border-[#e5e7dd] p-5"
-                  >
+                    <Link
+                      key={match.id_partida}
+                      href={`/partidas/${match.id_partida}`}
+                      className="block rounded-xl border border-[#e5e7dd] p-5 transition hover:border-[#829c38] hover:bg-[#fbfcf8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#789339]"
+                    >
 
                     <div className="grid items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
 
@@ -576,7 +576,7 @@ export function MatchesSection({
                       </div>
                     )}
 
-                  </article>
+                  </Link>
                 ))}
 
               </div>
