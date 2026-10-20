@@ -43,7 +43,7 @@ export function PublicStandings() {
   }, [id, attempt])
 
   return <><Header /><main className="section-wrap min-h-[70vh] py-10 sm:py-14">
-    <div className="organizer-panel mb-8 rounded-2xl bg-[#19382b] p-6 text-white sm:p-9">
+    <div className="organizer-panel relative mb-8 overflow-hidden rounded-2xl bg-[#19382b] p-6 text-white sm:p-9">
       <h1 className="font-display text-3xl font-bold">Classificação</h1>
       <p className="mt-3 text-sm">Acompanhe a posição e o desempenho dos times do campeonato.</p>
     </div>
