@@ -39,7 +39,7 @@ type Usuario = {
     titulo: "Partidas",
     descricao: "Organize jogos e resultados.",
     icone: CalendarDays,
-    href: "/calendario",
+    href: "/jogos",
   },
   {
     titulo: "Jogadores",
