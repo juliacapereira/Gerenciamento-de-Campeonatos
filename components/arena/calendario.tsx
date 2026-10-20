@@ -16,18 +16,19 @@ const date = (value?: string | null) => {
   if (!value) return 'Data a definir'
   return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR')
 }
+const hour = (value?: string | null) => (value && value.length >= 16 ? value.slice(11, 16) : '')
 export function MatchList({ games, empty = 'Nenhuma partida encontrada.' }: { games: Match[]; empty?: string }) {
   if (!games.length) return <p className="py-5 text-sm text-[#7d8378]">{empty}</p>
   return <ul className="grid gap-3">{games.map(game => <li key={game.id_partida} className="rounded-xl border border-[#e5e7dd] bg-white p-5">
     <div className="flex flex-wrap justify-between gap-2 text-xs text-[#747b70]"><Link className="font-bold underline" href={`/campeonatos/${game.id_campeonato}`}>{game.campeonato} · {game.esporte}</Link><span>{statuses[game.status]}</span></div>
     <p className="my-3 flex flex-wrap items-center gap-3 font-bold"><Link href={`/times/${game.id_time_a}`}>{game.time_a}</Link><span className="rounded-lg bg-[#eef1e5] px-3 py-1">{game.placar_time_a !== null && game.placar_time_b !== null ? `${game.placar_time_a} × ${game.placar_time_b}` : '×'}</span><Link href={`/times/${game.id_time_b}`}>{game.time_b}</Link></p>
-    {game.data_hora ? (
-  <p className="text-sm text-[#747b70]">
-    <time dateTime={game.data_hora}>{date(game.data_hora)}</time>
-  </p>
-) : (
-  <p className="text-sm text-[#747b70]">Data a definir</p>
-)}
+    <p className="text-sm text-[#747b70]">
+      {game.data_hora ? (
+        <time dateTime={game.data_hora}>{date(game.data_hora)}{hour(game.data_hora) && ` às ${hour(game.data_hora)}`}</time>
+      ) : 'Data a definir'}
+      {' · '}{game.local || 'Local a definir'}
+    </p>
+    <Link className="mt-3 inline-block text-sm font-bold underline" href={`/partidas/${game.id_partida}`}>Ver detalhes da partida →</Link>
   </li>)}</ul>
 }
 
