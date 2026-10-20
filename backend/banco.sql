@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS campeonato (
     id_campeonato BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
     id_esporte BIGINT UNSIGNED NOT NULL,
-
+    id_usuario BIGINT UNSIGNED NOT NULL,
     nome VARCHAR(150) NOT NULL,
     descricao TEXT,
 
@@ -59,6 +59,10 @@ CREATE TABLE IF NOT EXISTS campeonato (
     CONSTRAINT fk_campeonato_esporte
         FOREIGN KEY (id_esporte)
         REFERENCES esporte(id_esporte),
+
+    CONSTRAINT fk_campeonato_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario),
 
     CONSTRAINT ck_campeonato_datas
         CHECK (data_fim >= data_inicial),
