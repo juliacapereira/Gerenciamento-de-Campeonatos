@@ -87,7 +87,17 @@ npm test
 
 - `/jogos`: calendário em lista cronológica, com filtros por campeonato, esporte, time, status e período. Exibe equipes, data, horário local, local, situação e placar quando registrado. O último dia do filtro é incluído integralmente.
 - `/campeonatos/[id]`: resumo com navegação rápida para classificação, calendário e times participantes, além do total de inscritos, partidas por situação, até cinco próximos jogos/partidas em andamento e cinco últimos resultados. O link para o calendário mantém o campeonato selecionado.
-- `/classificacao?campeonato=[id]`: consulta pública da classificação calculada pela view existente `vw_classificacao`, com seleção de campeonato e links para resumo, calendário e times. Esta integração usa as regras e a ordenação já definidas no banco; não implementa a configuração de regras ou critérios personalizados das outras histórias.
+- `/classificacao?campeonato=[id]`: tabela pública da US20, com seleção de campeonato e atualização automática a cada 15 segundos e ao retornar à aba.
 - API pública: `GET /api/jogos` (parâmetros opcionais `campeonato`, `esporte`, `time`, `status`, `inicio`, `fim`), `GET /api/campeonatos/:id/resumo` e `GET /api/campeonatos/:id/classificacao`. O resumo consolida o objeto `campeonato` (nome, esporte, datas e status), os totais e os jogos em uma resposta.
 
 As telas seguem os componentes, cores e tratamento de carregamento, falhas e listas vazias do projeto. Não exigem login nem migração do banco. Reinicie a API após atualizar. Os dados vêm das tabelas existentes `partida`, `resultado` e `campeonato_time`; se ainda não houver partidas cadastradas, o calendário estará vazio. O cadastro de partidas não faz parte desta sprint. As seções de jogos de demonstração da página inicial continuam independentes do calendário público.
+
+## US20 — Tabela de classificação
+
+Implementa os critérios do PDF “Histórias de Usuário - Campeonatos”: cálculo de PJ, V, E, D, GP, GS, SG e PTS, ordenação pelos desempates do campeonato e atualização automática da grade.
+
+O motor em `backend/classificacao.js` recalcula a cada consulta usando os resultados finais de partidas encerradas e os pesos de `regra_pontuacao` do esporte. Inclui inscritos sem jogos e reflete correções de placar sem acumular o resultado antigo.
+
+Os registros de `criterio_desempate` são aplicados por `ordem`, após PTS. Aceita V/VITORIAS, SG/SALDO_GOLS, GP/GOLS_PRO, GS/GOLS_SOFRIDOS (menor primeiro), D/DERROTAS (menor primeiro) e E/EMPATES, além dos aliases no módulo. Sem configuração, mantém a sequência existente: vitórias, saldo e gols a favor. Empate completo usa ID para estabilidade. Critérios desconhecidos e ausência de regras retornam erro de configuração, evitando classificação incorreta.
+
+Não exige migração. A configuração administrativa das regras pertence às histórias dependentes. Reinicie a API após atualizar. Testes sem banco: `cd backend && node --test --test-isolation=none tests/classificacao.test.js tests/calendario.test.js`.

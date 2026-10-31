@@ -53,16 +53,4 @@ export function registerCalendarRoutes(app, pool) {
         ultimos_resultados: games.filter(game => game.status === 'ENCERRADA' && game.placar_time_a !== null && game.placar_time_b !== null).reverse().slice(0, 5) });
     } catch (error) { next(error); }
   });
-  // Consulta a classificação já calculada pela view do projeto.
-  app.get('/api/campeonatos/:id/classificacao', async (req, res, next) => {
-    if (!validId(req.params.id)) return res.status(400).json({ erro: 'Identificador inválido.' });
-    try {
-      const [championships] = await pool.execute('SELECT id_campeonato FROM campeonato WHERE id_campeonato = ?', [req.params.id]);
-      if (!championships.length) return res.status(404).json({ erro: 'Campeonato não encontrado.' });
-      const [rows] = await pool.execute(`SELECT posicao, id_time, time, pj, v, e, d, gp, gs, sg, pts
-        FROM vw_classificacao WHERE id_campeonato = ? ORDER BY posicao`, [req.params.id]);
-      res.json(rows);
-    } catch (error) { next(error); }
-  });
-
 }
