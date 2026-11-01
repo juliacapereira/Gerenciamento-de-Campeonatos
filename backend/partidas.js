@@ -262,4 +262,154 @@ export function registerMatchRoutes(app, pool) {
       }
     }
   );
+
+  // ============================================================
+  // GET /api/partidas/:id
+  // Detalhes consolidados de uma partida
+  // Público
+  // ============================================================
+
+  app.get(
+    '/api/partidas/:id',
+    async (req, res, next) => {
+      if (!validId(req.params.id)) {
+        return res.status(400).json({
+          erro: 'Identificador de partida inválido.',
+        });
+      }
+
+      try {
+        const [partidas] = await pool.execute(
+          `
+            SELECT
+              p.id_partida,
+              p.id_campeonato,
+              p.id_time_a,
+              p.id_time_b,
+              p.data_hora,
+              p.local,
+              p.status,
+              p.criado_em,
+              p.atualizado_em,
+
+              ta.nome AS time_a,
+              tb.nome AS time_b,
+
+              r.id_resultado,
+              r.placar_time_a,
+              r.placar_time_b,
+              r.registrado_em AS resultado_registrado_em,
+              r.atualizado_em AS resultado_atualizado_em
+
+            FROM partida p
+
+            INNER JOIN time ta
+              ON ta.id_time = p.id_time_a
+
+            INNER JOIN time tb
+              ON tb.id_time = p.id_time_b
+
+            LEFT JOIN resultado r
+              ON r.id_partida = p.id_partida
+
+            WHERE p.id_partida = ?
+            LIMIT 1
+          `,
+          [req.params.id]
+        );
+
+        if (!partidas.length) {
+          return res.status(404).json({
+            erro: 'Partida não encontrada.',
+          });
+        }
+                const partida = partidas[0];
+
+        const [acontecimentos] = await pool.execute(
+          `
+            SELECT
+              a.id_acontecimento,
+              a.id_time,
+              a.id_jogador,
+              j.nome AS jogador,
+              a.tipo,
+              a.minuto,
+              a.descricao,
+              a.criado_em
+            FROM acontecimento a
+            LEFT JOIN jogador j
+              ON j.id_jogador = a.id_jogador
+            WHERE a.id_partida = ?
+            ORDER BY
+              a.minuto IS NULL ASC,
+              a.minuto ASC,
+              a.criado_em ASC
+          `,
+          [req.params.id]
+        );
+
+        const [pontuacoes] = await pool.execute(
+          `
+            SELECT
+              pt.id_pontuacao,
+              pt.id_time,
+              pt.id_jogador,
+              j.nome AS jogador,
+              pt.quantidade,
+              pt.minuto,
+              pt.criado_em
+            FROM pontuacao pt
+            LEFT JOIN jogador j
+              ON j.id_jogador = pt.id_jogador
+            WHERE pt.id_partida = ?
+            ORDER BY
+              pt.minuto IS NULL ASC,
+              pt.minuto ASC,
+              pt.criado_em ASC
+          `,
+          [req.params.id]
+        );
+
+        // Não há tabela de escalação por partida: usa-se o elenco ativo
+        // de cada time (US08), que é o que está disponível no banco.
+        const [elenco] = await pool.execute(
+          `
+            SELECT
+              e.id_time,
+              j.id_jogador,
+              j.nome,
+              j.foto_url,
+              e.numero_camisa,
+              COALESCE(e.posicao, j.posicao) AS posicao
+            FROM elenco e
+            INNER JOIN jogador j
+              ON j.id_jogador = e.id_jogador
+            WHERE e.id_time IN (?, ?)
+              AND e.ativo = TRUE
+            ORDER BY
+              e.numero_camisa IS NULL ASC,
+              e.numero_camisa ASC,
+              j.nome ASC
+          `,
+          [partida.id_time_a, partida.id_time_b]
+        );
+
+        return res.json({
+          partida,
+          acontecimentos,
+          pontuacoes,
+          escalacoes: {
+            time_a: elenco.filter(
+              item => item.id_time === partida.id_time_a
+            ),
+            time_b: elenco.filter(
+              item => item.id_time === partida.id_time_b
+            ),
+          },
+        });
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
 }
