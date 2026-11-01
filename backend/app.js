@@ -14,6 +14,7 @@ import { registerEntryRoutes } from './inscricoes.js';
 import { registerSportRoutes } from './esportes.js';
 import { registerCalendarRoutes } from './calendario.js';
 import { registerResultRoutes } from './resultados.js';
+import { registerRuleRoutes } from './regras.js';
 
 
 export function createApp(pool, { adminRouter } = {}) {
@@ -594,6 +595,7 @@ export function createApp(pool, { adminRouter } = {}) {
   registerSportRoutes(app, pool);
   registerMatchRoutes(app, pool);
   registerResultRoutes(app, pool);     
+  registerRuleRoutes(app, pool);
 
 
   // ============================================================

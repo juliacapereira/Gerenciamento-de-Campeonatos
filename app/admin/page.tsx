@@ -14,6 +14,7 @@ import {
   UserRound,
   ShieldCheck,
   LayoutDashboard,
+  Scale,
 } from "lucide-react";
 
 type Usuario = {
@@ -52,6 +53,12 @@ type Usuario = {
     descricao: "Registre gols, pontos e o placar final das partidas.",
     icone: ClipboardCheck,
     href: "/resultados",
+  },
+  {
+    titulo: "Regras de pontuação",
+    descricao: "Defina quantos pontos valem vitória, empate e derrota em cada esporte.",
+    icone: Scale,
+    href: "/regras",
   },
 ];
 
@@ -245,7 +252,7 @@ export default function PainelAdministrador() {
             </p>
           </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
   {funcionalidades.map((item) => {
     const Icone = item.icone;
 
