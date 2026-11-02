@@ -7,6 +7,8 @@ import Link from "next/link";
 import {
   ArrowRight,
   CalendarDays,
+  ClipboardCheck,
+  History,
   LogOut,
   Trophy,
   Users,
@@ -45,6 +47,18 @@ type Usuario = {
     descricao: "Consulte e gerencie os atletas cadastrados.",
     icone: UserRound,
     href: "/jogadores",
+  },
+  {
+    titulo: "Resultados",
+    descricao: "Registre gols, pontos e o placar final das partidas.",
+    icone: ClipboardCheck,
+    href: "/resultados",
+  },
+  {
+    titulo: "Acontecimentos",
+    descricao: "Registre cartões, faltas e lances importantes das partidas.",
+    icone: History,
+    href: "/acontecimentos",
   },
 ];
 
@@ -238,8 +252,8 @@ export default function PainelAdministrador() {
             </p>
           </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-  {funcionalidades.map((item) => {
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    {funcionalidades.map((item) => {
     const Icone = item.icone;
 
     const conteudo = (
