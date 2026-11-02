@@ -155,11 +155,31 @@ export function registerResultRoutes(app, pool) {
         [partida.id_partida]
       );
 
+      const [elenco] = await pool.execute(
+        `
+          SELECT
+            e.id_time,
+            j.id_jogador,
+            j.nome,
+            e.numero_camisa
+          FROM elenco e
+          INNER JOIN jogador j ON j.id_jogador = e.id_jogador
+          WHERE e.id_time IN (?, ?)
+            AND e.ativo = TRUE
+          ORDER BY e.numero_camisa IS NULL, e.numero_camisa, j.nome
+        `,
+        [partida.id_time_a, partida.id_time_b]
+      );
+
       res.json({
         partida,
         resultado: resultados[0] ?? null,
         placar_acumulado: await placarAcumulado(pool, partida),
         pontuacoes,
+        escalacoes: {
+          time_a: elenco.filter(item => Number(item.id_time) === Number(partida.id_time_a)),
+          time_b: elenco.filter(item => Number(item.id_time) === Number(partida.id_time_b)),
+        },
       });
 
     } catch (error) {
@@ -270,7 +290,7 @@ export function registerResultRoutes(app, pool) {
   // ============================================================
   // POST /api/partidas/:id/pontuacoes        (US17)
   //
-  // Registra um gol/ponto: time beneficiado, minuto e quantidade.
+  // Registra um gol/ponto: time beneficiado, atleta, minuto e quantidade.
   // ============================================================
 
   app.post('/api/partidas/:id/pontuacoes', async (req, res, next) => {
@@ -279,6 +299,7 @@ export function registerResultRoutes(app, pool) {
     }
 
     const idTime = inteiro(req.body?.id_time);
+    const idJogador = inteiro(req.body?.id_jogador);
     const minuto = inteiro(req.body?.minuto);
     const quantidade =
       req.body?.quantidade === undefined || req.body?.quantidade === null || req.body?.quantidade === ''
@@ -287,6 +308,10 @@ export function registerResultRoutes(app, pool) {
 
     if (!validId(idTime)) {
       return res.status(400).json({ erro: 'Selecione o time que marcou.' });
+    }
+
+    if (!validId(idJogador)) {
+      return res.status(400).json({ erro: 'Selecione o atleta que marcou.' });
     }
 
     if (Number.isNaN(minuto) || minuto < 0 || minuto > 300) {
@@ -329,12 +354,30 @@ export function registerResultRoutes(app, pool) {
         return res.status(400).json({ erro: 'O time informado não joga esta partida.' });
       }
 
+      const [atletas] = await connection.execute(
+        `
+          SELECT id_jogador
+          FROM elenco
+          WHERE id_time = ?
+            AND id_jogador = ?
+            AND ativo = TRUE
+        `,
+        [idTime, idJogador]
+      );
+
+      if (!atletas.length) {
+        await connection.rollback();
+        return res.status(400).json({
+          erro: 'O atleta selecionado não pertence ao elenco ativo do time que marcou.',
+        });
+      }
+
       const [result] = await connection.execute(
         `
-          INSERT INTO pontuacao (id_partida, id_time, quantidade, minuto)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO pontuacao (id_partida, id_time, id_jogador, quantidade, minuto)
+          VALUES (?, ?, ?, ?, ?)
         `,
-        [partida.id_partida, idTime, quantidade, minuto]
+        [partida.id_partida, idTime, idJogador, quantidade, minuto]
       );
 
       // Primeiro gol/ponto registrado: a partida passa a "em andamento"

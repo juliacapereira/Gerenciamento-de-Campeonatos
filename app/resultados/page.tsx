@@ -21,8 +21,16 @@ type Pontuacao = {
   id_pontuacao: number;
   id_time: number;
   time: string;
+  id_jogador: number | null;
+  jogador: string | null;
   quantidade: number;
   minuto: number | null;
+};
+
+type Atleta = {
+  id_jogador: number;
+  nome: string;
+  numero_camisa: number | null;
 };
 
 type Placar = {
@@ -39,6 +47,10 @@ type Placar = {
   resultado: { placar_time_a: number; placar_time_b: number } | null;
   placar_acumulado: { time_a: number; time_b: number };
   pontuacoes: Pontuacao[];
+  escalacoes: {
+    time_a: Atleta[];
+    time_b: Atleta[];
+  };
 };
 
 type Aviso = { tipo: "ok" | "erro"; texto: string } | null;
@@ -97,6 +109,7 @@ function Resultados() {
 
   // formulário de gol/ponto (US17)
   const [idTimeGol, setIdTimeGol] = useState("");
+  const [idJogadorGol, setIdJogadorGol] = useState("");
   const [minuto, setMinuto] = useState("");
   const [quantidade, setQuantidade] = useState("1");
 
@@ -138,6 +151,7 @@ function Resultados() {
   useEffect(() => {
     setAviso(null);
     setIdTimeGol("");
+    setIdJogadorGol("");
     setMinuto("");
     setQuantidade("1");
     carregarPlacar(idPartida);
@@ -157,8 +171,8 @@ function Resultados() {
     evento.preventDefault();
     setAviso(null);
 
-    if (!idTimeGol || minuto === "") {
-      return setAviso({ tipo: "erro", texto: "Selecione o time e informe o minuto." });
+    if (!idTimeGol || !idJogadorGol || minuto === "") {
+      return setAviso({ tipo: "erro", texto: "Selecione o time, o atleta e informe o minuto." });
     }
 
     setEnviando(true);
@@ -167,10 +181,12 @@ function Resultados() {
         method: "POST",
         body: JSON.stringify({
           id_time: Number(idTimeGol),
+          id_jogador: Number(idJogadorGol),
           minuto: Number(minuto),
           quantidade: Number(quantidade || 1),
         }),
       });
+      setIdJogadorGol("");
       setMinuto("");
       setQuantidade("1");
       await recarregarTudo();
@@ -229,6 +245,11 @@ function Resultados() {
   const partida = placar?.partida;
   const encerrada = partida?.status === "ENCERRADA";
   const bloqueada = partida?.status === "CANCELADA" || partida?.status === "ADIADA";
+  const atletasDoTime = idTimeGol === String(partida?.id_time_a)
+    ? placar?.escalacoes.time_a ?? []
+    : idTimeGol === String(partida?.id_time_b)
+      ? placar?.escalacoes.time_b ?? []
+      : [];
 
   return (
     <main className="min-h-screen bg-[#FAFAF7] text-[#173629]">
@@ -353,11 +374,41 @@ function Resultados() {
                         id="time-gol"
                         className={campo}
                         value={idTimeGol}
-                        onChange={(e) => setIdTimeGol(e.target.value)}
+                        onChange={(e) => {
+                          setIdTimeGol(e.target.value);
+                          setIdJogadorGol("");
+                        }}
                       >
                         <option value="">Selecione</option>
                         <option value={partida.id_time_a}>{partida.time_a}</option>
                         <option value={partida.id_time_b}>{partida.time_b}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="jogador-gol" className="mb-1 block text-sm font-bold">
+                        Atleta que marcou
+                      </label>
+                      <select
+                        id="jogador-gol"
+                        className={campo}
+                        value={idJogadorGol}
+                        onChange={(e) => setIdJogadorGol(e.target.value)}
+                        disabled={!idTimeGol || atletasDoTime.length === 0}
+                      >
+                        <option value="">
+                          {!idTimeGol
+                            ? "Selecione primeiro o time"
+                            : atletasDoTime.length
+                              ? "Selecione"
+                              : "Nenhum atleta no elenco ativo"}
+                        </option>
+                        {atletasDoTime.map((atleta) => (
+                          <option key={atleta.id_jogador} value={atleta.id_jogador}>
+                            {atleta.numero_camisa !== null ? `#${atleta.numero_camisa} · ` : ""}
+                            {atleta.nome}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -414,6 +465,7 @@ function Resultados() {
                         </span>
                         <span className="flex-1">
                           {p.time}
+                          {p.jogador && <span className="text-[#526d32]"> · {p.jogador}</span>}
                           {p.quantidade > 1 && <span className="text-[#718075]"> (+{p.quantidade})</span>}
                         </span>
                         {!encerrada && (
