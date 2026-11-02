@@ -3,6 +3,7 @@ export function registerMatchRoutes(app, pool) {
     /^[1-9]\d*$/.test(String(value)) &&
     Number.isSafeInteger(Number(value));
 
+
   // ============================================================
   // GET /api/campeonatos/:id/partidas
   //
@@ -44,8 +45,11 @@ export function registerMatchRoutes(app, pool) {
               p.data_hora,
               p.local,
               p.status,
+              p.clima,
+
               ta.nome AS time_a,
               tb.nome AS time_b
+
             FROM partida p
 
             INNER JOIN time ta
@@ -56,7 +60,10 @@ export function registerMatchRoutes(app, pool) {
 
             WHERE p.id_campeonato = ?
 
-            ORDER BY p.id_partida DESC
+            ORDER BY
+              p.data_hora IS NULL ASC,
+              p.data_hora ASC,
+              p.id_partida DESC
           `,
           [req.params.id]
         );
@@ -88,13 +95,18 @@ export function registerMatchRoutes(app, pool) {
       const idTimeB =
         Number(req.body.id_time_b);
 
-        const { data_hora, local } = req.body;
+      const {
+        data_hora,
+        local
+      } = req.body;
+
 
       if (!validId(idCampeonato)) {
         return res.status(400).json({
           erro: 'Identificador de campeonato inválido.',
         });
       }
+
 
       if (
         !validId(idTimeA) ||
@@ -105,17 +117,20 @@ export function registerMatchRoutes(app, pool) {
         });
       }
 
+
       if (idTimeA === idTimeB) {
         return res.status(400).json({
           erro: 'Os times da partida devem ser diferentes.',
         });
       }
 
+
       if (!data_hora) {
         return res.status(400).json({
           erro: 'Informe a data e o horário da partida.',
         });
       }
+
 
       let connection;
 
@@ -136,12 +151,16 @@ export function registerMatchRoutes(app, pool) {
               SELECT
                 id_campeonato,
                 id_usuario
+
               FROM campeonato
+
               WHERE id_campeonato = ?
+
               FOR UPDATE
             `,
             [idCampeonato]
           );
+
 
         if (!campeonatos.length) {
           await connection.rollback();
@@ -150,6 +169,7 @@ export function registerMatchRoutes(app, pool) {
             erro: 'Campeonato não encontrado.',
           });
         }
+
 
         if (
           Number(
@@ -176,7 +196,9 @@ export function registerMatchRoutes(app, pool) {
           await connection.execute(
             `
               SELECT id_time
+
               FROM campeonato_time
+
               WHERE id_campeonato = ?
                 AND id_time IN (?, ?)
             `,
@@ -187,6 +209,7 @@ export function registerMatchRoutes(app, pool) {
             ]
           );
 
+
         if (timesInscritos.length !== 2) {
           await connection.rollback();
 
@@ -196,20 +219,42 @@ export function registerMatchRoutes(app, pool) {
           });
         }
 
-        const [conflitos] = await connection.execute(
-          `
-            SELECT id_partida 
-            FROM partida 
-            WHERE data_hora = ? 
-              AND (id_time_a IN (?, ?) OR id_time_b IN (?, ?))
-          `,
-          [data_hora, idTimeA, idTimeB, idTimeA, idTimeB]
-        );
+
+        // ------------------------------------------------------
+        // Confere conflito de horário
+        // ------------------------------------------------------
+
+        const [conflitos] =
+          await connection.execute(
+            `
+              SELECT id_partida
+
+              FROM partida
+
+              WHERE data_hora = ?
+
+                AND (
+                  id_time_a IN (?, ?)
+                  OR
+                  id_time_b IN (?, ?)
+                )
+            `,
+            [
+              data_hora,
+              idTimeA,
+              idTimeB,
+              idTimeA,
+              idTimeB,
+            ]
+          );
+
 
         if (conflitos.length > 0) {
           await connection.rollback();
+
           return res.status(400).json({
-            erro: 'Conflito de agenda: Um dos times já possui partida agendada neste mesmo horário.',
+            erro:
+              'Conflito de agenda: Um dos times já possui partida agendada neste mesmo horário.',
           });
         }
 
@@ -222,13 +267,14 @@ export function registerMatchRoutes(app, pool) {
           await connection.execute(
             `
               INSERT INTO partida
-                (
-                  id_campeonato,
-                  id_time_a,
-                  id_time_b,
-                  data_hora, 
-                  local
-                )
+              (
+                id_campeonato,
+                id_time_a,
+                id_time_b,
+                data_hora,
+                local
+              )
+
               VALUES (?, ?, ?, ?, ?)
             `,
             [
@@ -236,11 +282,13 @@ export function registerMatchRoutes(app, pool) {
               idTimeA,
               idTimeB,
               data_hora,
-            local?.trim() || null
+              local?.trim() || null,
             ]
           );
 
+
         await connection.commit();
+
 
         res.status(201).json({
           id_partida:
@@ -263,9 +311,160 @@ export function registerMatchRoutes(app, pool) {
     }
   );
 
+
+  // ============================================================
+  // PATCH /api/partidas/:id/clima
+  //
+  // US22 - Condições Climáticas
+  //
+  // Administrador proprietário do campeonato
+  // ============================================================
+
+  app.patch(
+    '/api/partidas/:id/clima',
+    async (req, res, next) => {
+      if (!validId(req.params.id)) {
+        return res.status(400).json({
+          erro: 'Identificador de partida inválido.',
+        });
+      }
+
+
+      const clima =
+        typeof req.body.clima === 'string'
+          ? req.body.clima.trim()
+          : '';
+
+
+      if (clima.length > 150) {
+        return res.status(400).json({
+          erro:
+            'A descrição das condições climáticas deve possuir no máximo 150 caracteres.',
+        });
+      }
+
+
+      let connection;
+
+      try {
+        connection =
+          await pool.getConnection();
+
+        await connection.beginTransaction();
+
+
+        // ------------------------------------------------------
+        // Localiza a partida e o proprietário do campeonato
+        // ------------------------------------------------------
+
+        const [partidas] =
+          await connection.execute(
+            `
+              SELECT
+                p.id_partida,
+                p.id_campeonato,
+                c.id_usuario
+
+              FROM partida p
+
+              INNER JOIN campeonato c
+                ON c.id_campeonato =
+                   p.id_campeonato
+
+              WHERE p.id_partida = ?
+
+              FOR UPDATE
+            `,
+            [req.params.id]
+          );
+
+
+        if (!partidas.length) {
+          await connection.rollback();
+
+          return res.status(404).json({
+            erro: 'Partida não encontrada.',
+          });
+        }
+
+
+        // ------------------------------------------------------
+        // Somente o dono do campeonato pode alterar
+        // ------------------------------------------------------
+
+        if (
+          Number(
+            partidas[0].id_usuario
+          ) !==
+          Number(
+            req.usuario.id_usuario
+          )
+        ) {
+          await connection.rollback();
+
+          return res.status(403).json({
+            erro:
+              'Você não tem permissão para alterar as condições climáticas desta partida.',
+          });
+        }
+
+
+        // ------------------------------------------------------
+        // Atualiza o clima
+        //
+        // Campo vazio = NULL
+        // ------------------------------------------------------
+
+        await connection.execute(
+          `
+            UPDATE partida
+
+            SET clima = ?
+
+            WHERE id_partida = ?
+          `,
+          [
+            clima || null,
+            req.params.id,
+          ]
+        );
+
+
+        await connection.commit();
+
+
+        return res.json({
+          id_partida:
+            Number(req.params.id),
+
+          clima:
+            clima || null,
+
+          mensagem:
+            clima
+              ? 'Condições climáticas registradas com sucesso!'
+              : 'Condições climáticas removidas com sucesso!',
+        });
+
+      } catch (error) {
+        if (connection) {
+          await connection.rollback();
+        }
+
+        next(error);
+
+      } finally {
+        connection?.release();
+      }
+    }
+  );
+
+
   // ============================================================
   // GET /api/partidas/:id
+  //
   // Detalhes consolidados de uma partida
+  //
   // Público
   // ============================================================
 
@@ -279,134 +478,204 @@ export function registerMatchRoutes(app, pool) {
       }
 
       try {
-        const [partidas] = await pool.execute(
-          `
-            SELECT
-              p.id_partida,
-              p.id_campeonato,
-              p.id_time_a,
-              p.id_time_b,
-              p.data_hora,
-              p.local,
-              p.status,
-              p.criado_em,
-              p.atualizado_em,
+        const [partidas] =
+          await pool.execute(
+            `
+              SELECT
+                p.id_partida,
+                p.id_campeonato,
+                p.id_time_a,
+                p.id_time_b,
+                p.data_hora,
+                p.local,
+                p.status,
+                p.clima,
+                p.criado_em,
+                p.atualizado_em,
 
-              ta.nome AS time_a,
-              tb.nome AS time_b,
+                ta.nome AS time_a,
+                tb.nome AS time_b,
 
-              r.id_resultado,
-              r.placar_time_a,
-              r.placar_time_b,
-              r.registrado_em AS resultado_registrado_em,
-              r.atualizado_em AS resultado_atualizado_em
+                r.id_resultado,
+                r.placar_time_a,
+                r.placar_time_b,
+                r.registrado_em AS resultado_registrado_em,
+                r.atualizado_em AS resultado_atualizado_em
 
-            FROM partida p
+              FROM partida p
 
-            INNER JOIN time ta
-              ON ta.id_time = p.id_time_a
+              INNER JOIN time ta
+                ON ta.id_time =
+                   p.id_time_a
 
-            INNER JOIN time tb
-              ON tb.id_time = p.id_time_b
+              INNER JOIN time tb
+                ON tb.id_time =
+                   p.id_time_b
 
-            LEFT JOIN resultado r
-              ON r.id_partida = p.id_partida
+              LEFT JOIN resultado r
+                ON r.id_partida =
+                   p.id_partida
 
-            WHERE p.id_partida = ?
-            LIMIT 1
-          `,
-          [req.params.id]
-        );
+              WHERE p.id_partida = ?
+
+              LIMIT 1
+            `,
+            [req.params.id]
+          );
+
 
         if (!partidas.length) {
           return res.status(404).json({
             erro: 'Partida não encontrada.',
           });
         }
-                const partida = partidas[0];
 
-        const [acontecimentos] = await pool.execute(
-          `
-            SELECT
-              a.id_acontecimento,
-              a.id_time,
-              a.id_jogador,
-              j.nome AS jogador,
-              a.tipo,
-              a.minuto,
-              a.descricao,
-              a.criado_em
-            FROM acontecimento a
-            LEFT JOIN jogador j
-              ON j.id_jogador = a.id_jogador
-            WHERE a.id_partida = ?
-            ORDER BY
-              a.minuto IS NULL ASC,
-              a.minuto ASC,
-              a.criado_em ASC
-          `,
-          [req.params.id]
-        );
 
-        const [pontuacoes] = await pool.execute(
-          `
-            SELECT
-              pt.id_pontuacao,
-              pt.id_time,
-              pt.id_jogador,
-              j.nome AS jogador,
-              pt.quantidade,
-              pt.minuto,
-              pt.criado_em
-            FROM pontuacao pt
-            LEFT JOIN jogador j
-              ON j.id_jogador = pt.id_jogador
-            WHERE pt.id_partida = ?
-            ORDER BY
-              pt.minuto IS NULL ASC,
-              pt.minuto ASC,
-              pt.criado_em ASC
-          `,
-          [req.params.id]
-        );
+        const partida =
+          partidas[0];
 
-        // Não há tabela de escalação por partida: usa-se o elenco ativo
-        // de cada time (US08), que é o que está disponível no banco.
-        const [elenco] = await pool.execute(
-          `
-            SELECT
-              e.id_time,
-              j.id_jogador,
-              j.nome,
-              j.foto_url,
-              e.numero_camisa,
-              COALESCE(e.posicao, j.posicao) AS posicao
-            FROM elenco e
-            INNER JOIN jogador j
-              ON j.id_jogador = e.id_jogador
-            WHERE e.id_time IN (?, ?)
-              AND e.ativo = TRUE
-            ORDER BY
-              e.numero_camisa IS NULL ASC,
-              e.numero_camisa ASC,
-              j.nome ASC
-          `,
-          [partida.id_time_a, partida.id_time_b]
-        );
+
+        // ------------------------------------------------------
+        // Acontecimentos
+        // ------------------------------------------------------
+
+        const [acontecimentos] =
+          await pool.execute(
+            `
+              SELECT
+                a.id_acontecimento,
+                a.id_time,
+                a.id_jogador,
+
+                j.nome AS jogador,
+
+                a.tipo,
+                a.minuto,
+                a.descricao,
+                a.criado_em
+
+              FROM acontecimento a
+
+              LEFT JOIN jogador j
+                ON j.id_jogador =
+                   a.id_jogador
+
+              WHERE a.id_partida = ?
+
+              ORDER BY
+                a.minuto IS NULL ASC,
+                a.minuto ASC,
+                a.criado_em ASC
+            `,
+            [req.params.id]
+          );
+
+
+        // ------------------------------------------------------
+        // Pontuações
+        // ------------------------------------------------------
+
+        const [pontuacoes] =
+          await pool.execute(
+            `
+              SELECT
+                pt.id_pontuacao,
+                pt.id_time,
+                pt.id_jogador,
+
+                j.nome AS jogador,
+
+                pt.quantidade,
+                pt.minuto,
+                pt.criado_em
+
+              FROM pontuacao pt
+
+              LEFT JOIN jogador j
+                ON j.id_jogador =
+                   pt.id_jogador
+
+              WHERE pt.id_partida = ?
+
+              ORDER BY
+                pt.minuto IS NULL ASC,
+                pt.minuto ASC,
+                pt.criado_em ASC
+            `,
+            [req.params.id]
+          );
+
+
+        // ------------------------------------------------------
+        // Elenco ativo dos dois times
+        // ------------------------------------------------------
+        //
+        // Não há tabela de escalação por partida:
+        // usa-se o elenco ativo de cada time.
+        // ------------------------------------------------------
+
+        const [elenco] =
+          await pool.execute(
+            `
+              SELECT
+                e.id_time,
+
+                j.id_jogador,
+                j.nome,
+                j.foto_url,
+
+                e.numero_camisa,
+
+                COALESCE(
+                  e.posicao,
+                  j.posicao
+                ) AS posicao
+
+              FROM elenco e
+
+              INNER JOIN jogador j
+                ON j.id_jogador =
+                   e.id_jogador
+
+              WHERE e.id_time IN (?, ?)
+                AND e.ativo = TRUE
+
+              ORDER BY
+                e.numero_camisa IS NULL ASC,
+                e.numero_camisa ASC,
+                j.nome ASC
+            `,
+            [
+              partida.id_time_a,
+              partida.id_time_b,
+            ]
+          );
+
 
         return res.json({
           partida,
+
           acontecimentos,
+
           pontuacoes,
+
           escalacoes: {
-            time_a: elenco.filter(
-              item => item.id_time === partida.id_time_a
-            ),
-            time_b: elenco.filter(
-              item => item.id_time === partida.id_time_b
-            ),
+            time_a:
+              elenco.filter(
+                item =>
+                  item.id_time ===
+                  partida.id_time_a
+              ),
+
+            time_b:
+              elenco.filter(
+                item =>
+                  item.id_time ===
+                  partida.id_time_b
+              ),
           },
         });
+
       } catch (error) {
         next(error);
       }
