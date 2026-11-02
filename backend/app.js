@@ -595,7 +595,7 @@ export function createApp(pool, { adminRouter } = {}) {
   registerEntryRoutes(app, pool);
   registerSportRoutes(app, pool);
   registerMatchRoutes(app, pool);
-  registerEventRoutes(app, pool);  
+  registerEventRoutes(app, pool);
   registerResultRoutes(app, pool);     
   registerRuleRoutes(app, pool);
 
