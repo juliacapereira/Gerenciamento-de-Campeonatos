@@ -1,3 +1,4 @@
+import { registerStandingRoutes } from './classificacao.js';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -13,6 +14,7 @@ import { registerEntryRoutes } from './inscricoes.js';
 import { registerSportRoutes } from './esportes.js';
 import { registerCalendarRoutes } from './calendario.js';
 import { registerResultRoutes } from './resultados.js';
+import { registerRuleRoutes } from './regras.js';
 
 
 export function createApp(pool, { adminRouter } = {}) {
@@ -586,12 +588,14 @@ export function createApp(pool, { adminRouter } = {}) {
   // ============================================================
 
   registerCalendarRoutes(app, pool);
+  registerStandingRoutes(app, pool);
   registerPlayerRoutes(app, pool);
   registerSquadRoutes(app, pool);
   registerEntryRoutes(app, pool);
   registerSportRoutes(app, pool);
   registerMatchRoutes(app, pool);
   registerResultRoutes(app, pool);     
+  registerRuleRoutes(app, pool);
 
 
   // ============================================================

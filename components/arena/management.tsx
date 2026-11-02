@@ -1611,8 +1611,7 @@ export function ManagementDetail({
 
           {championship && <ChampionshipSummary id={id} />}
 
-          {championship &&
-          entry.id_esporte ? (
+          {championship && entry.id_esporte ? (
             <EntriesSection
               championshipId={id}
               sportId={

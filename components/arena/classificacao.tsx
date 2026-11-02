@@ -36,16 +36,38 @@ export function PublicStandings() {
     setRows([]); setError('')
     if (!id) { setLoading(false); return }
     setLoading(true)
-    request<Standing[]>(`campeonatos/${encodeURIComponent(id)}/classificacao`).then(data => {
-      if (active) setRows(data)
-    }).catch(err => { if (active) setError(err.message) }).finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
+    let pending = false
+    const refresh = async () => {
+      if (pending) return
+      pending = true
+      try {
+        const data = await request<Standing[]>(`campeonatos/${encodeURIComponent(id)}/classificacao`)
+        if (active) { setRows(data); setError('') }
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : 'Não foi possível atualizar a classificação.')
+      } finally {
+        pending = false
+        if (active) setLoading(false)
+      }
+    }
+    void refresh()
+    const timer = window.setInterval(() => { if (!document.hidden) void refresh() }, 15000)
+    const onFocus = () => { void refresh() }
+    const onVisibility = () => { if (!document.hidden) void refresh() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [id, attempt])
 
   return <><Header /><main className="section-wrap min-h-[70vh] py-10 sm:py-14">
     <div className="organizer-panel relative mb-8 overflow-hidden rounded-2xl bg-[#19382b] p-6 text-white sm:p-9">
       <h1 className="font-display text-3xl font-bold">Classificação</h1>
-      <p className="mt-3 text-sm">Acompanhe a posição e o desempenho dos times do campeonato.</p>
+      <p className="mt-3 text-sm">Acompanhe a posição e o desempenho dos times do campeonato. Atualização automática a cada 15 segundos.</p>
     </div>
     <label className="block max-w-lg text-sm font-semibold">Campeonato
       <select className="arena-input mt-2 w-full" value={id} onChange={event => {
@@ -73,6 +95,6 @@ export function PublicStandings() {
         </tr>)}</tbody>
       </table></div>
       <p className="mt-4 text-xs leading-5 text-[#747b70]">PJ: partidas jogadas · V: vitórias · E: empates · D: derrotas · GP: gols/pontos a favor · GS: gols/pontos contra · SG: saldo · PTS: pontos.</p>
-    </section> : <p className="mt-6 text-sm text-[#747b70]">Classificação indisponível. O campeonato precisa de times inscritos e regras de pontuação configuradas.</p>)}
+    </section> : <p className="mt-6 text-sm text-[#747b70]">Nenhum time inscrito neste campeonato.</p>)}
   </main><Footer /></>
 }

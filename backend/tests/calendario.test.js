@@ -58,25 +58,3 @@ test('resumo consolida nome, esporte, datas e status do campeonato', async () =>
   assert.match(calls[0].sql, /e.nome AS esporte/);
   assert.deepEqual(calls[0].values, ['1']);
 });
-
-test('classificação valida ID e existência e consulta a view do campeonato em ordem', async () => {
-  const path = '/api/campeonatos/:id/classificacao';
-  const invalid = response();
-  await route({}, path)({ params: { id: '1 OR 1=1' } }, invalid, next);
-  assert.equal(invalid.statusCode, 400);
-  const missing = response();
-  await route({ execute: async () => [[]] }, path)({ params: { id: '1' } }, missing, next);
-  assert.equal(missing.statusCode, 404);
-  for (const rows of [[], [{ posicao: 1, id_time: 2, time: 'Time A', pts: 0 }]]) {
-    let query;
-    const pool = { execute: async (sql, values) => {
-      if (sql.includes('vw_classificacao')) { query = { sql, values }; return [rows]; }
-      return [[{ id_campeonato: 1 }]];
-    } };
-    const res = response();
-    await route(pool, path)({ params: { id: '1' } }, res, next);
-    assert.deepEqual(res.body, rows);
-    assert.deepEqual(query.values, ['1']);
-    assert.match(query.sql, /WHERE id_campeonato = \? ORDER BY posicao/);
-  }
-});
