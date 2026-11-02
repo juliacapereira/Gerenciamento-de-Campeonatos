@@ -8,6 +8,7 @@ import {
   ArrowRight,
   CalendarDays,
   ClipboardCheck,
+  History,
   LogOut,
   Trophy,
   Users,
@@ -59,6 +60,12 @@ type Usuario = {
     descricao: "Defina quantos pontos valem vitória, empate e derrota em cada esporte.",
     icone: Scale,
     href: "/regras",
+  },
+  {
+    titulo: "Acontecimentos",
+    descricao: "Registre cartões, faltas e lances importantes das partidas.",
+    icone: History,
+    href: "/acontecimentos",
   },
 ];
 
@@ -240,78 +247,59 @@ export default function PainelAdministrador() {
         </section>
 
         {/* FUNCIONALIDADES */}
-        <section className="mt-12">
+<section className="mt-12">
+  <div className="mb-7">
+    <h2 className="text-2xl font-extrabold tracking-tight">
+      Gerenciamento
+    </h2>
 
-          <div className="mb-7">
-            <h2 className="text-2xl font-extrabold tracking-tight">
-              Gerenciamento
-            </h2>
+    <p className="mt-2 text-sm text-[#718075]">
+      As principais áreas administrativas do ArenaLocal.
+    </p>
+  </div>
 
-            <p className="mt-2 text-sm text-[#718075]">
-              As principais áreas administrativas do ArenaLocal.
+  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    {funcionalidades.map((item) => {
+      const Icone = item.icone;
+
+      const conteudo = (
+        <>
+          <div>
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#EDF5D6]">
+              <Icone size={23} className="text-[#173629]" />
+            </div>
+
+            <h3 className="text-lg font-extrabold">
+              {item.titulo}
+            </h3>
+
+            <p className="mt-2 text-sm leading-relaxed text-[#718075]">
+              {item.descricao}
             </p>
           </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-  {funcionalidades.map((item) => {
-    const Icone = item.icone;
+          <div className="mt-6 flex items-center justify-between border-t border-[#E8EAE3] pt-4">
+            <span className="text-xs font-bold uppercase tracking-wide text-[#86A535]">
+              Acessar
+            </span>
 
-    const conteudo = (
-      <>
-        <div>
-          <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#EDF5D6]">
-            <Icone
-              size={23}
-              className="text-[#173629]"
-            />
+            <ArrowRight size={18} className="text-[#A0AAA0]" />
           </div>
+        </>
+      );
 
-          <h3 className="text-lg font-extrabold">
-            {item.titulo}
-          </h3>
-
-          <p className="mt-2 text-sm leading-relaxed text-[#718075]">
-            {item.descricao}
-          </p>
-        </div>
-
-        <div className="mt-6 flex items-center justify-between border-t border-[#E8EAE3] pt-4">
-          <span className="text-xs font-bold uppercase tracking-wide text-[#86A535]">
-            {item.href ? "Acessar" : "Em breve"}
-          </span>
-
-          <ArrowRight
-            size={18}
-            className="text-[#A0AAA0]"
-          />
-        </div>
-      </>
-    );
-
-    if (item.href) {
       return (
         <Link
-          key={item.titulo}
+          key={item.href}
           href={item.href}
           className="flex min-h-[215px] flex-col justify-between rounded-2xl border border-[#E5E9E0] bg-white p-6 transition hover:-translate-y-1 hover:border-[#CBD7BE] hover:shadow-lg"
         >
           {conteudo}
         </Link>
       );
-    }
-
-    return (
-      <div
-        key={item.titulo}
-        className="flex min-h-[215px] flex-col justify-between rounded-2xl border border-[#E5E9E0] bg-white p-6 opacity-70"
-      >
-        {conteudo}
-      </div>
-    );
-  })}
-</div>
-
-        </section>
+    })}
+  </div>
+</section>
 
         {/* MENSAGEM DE ERRO DO LOGOUT */}
         {erroSaida && (

@@ -13,6 +13,16 @@ import {
   Trophy,
   History,
   Users,
+  Target,
+  Square,
+  Flag,
+  HeartPulse,
+  ArrowLeftRight,
+  Play,
+  Pause,
+  Timer,
+  CircleDot,
+  type LucideIcon,
 } from 'lucide-react'
 
 type Partida = {
@@ -83,6 +93,25 @@ const statusLabels: Record<string, string> = {
   ENCERRADA: 'Encerrada',
   ADIADA: 'Adiada',
   CANCELADA: 'Cancelada',
+}
+// Cor e ícone de cada tipo na linha do tempo (US21)
+const estilosDoTipo: Record<string, { fundo: string; icone: LucideIcon; cor: string; preenchido?: boolean }> = {
+  'Gol/ponto': { fundo: 'bg-[#789339]', icone: Target, cor: 'text-white' },
+  'Cartão amarelo': { fundo: 'bg-amber-400', icone: Square, cor: 'text-amber-900', preenchido: true },
+  'Cartão vermelho': { fundo: 'bg-red-600', icone: Square, cor: 'text-white', preenchido: true },
+  'Falta': { fundo: 'bg-orange-500', icone: Flag, cor: 'text-white' },
+  'Pênalti': { fundo: 'bg-[#19382b]', icone: CircleDot, cor: 'text-white' },
+  'Lesão': { fundo: 'bg-rose-500', icone: HeartPulse, cor: 'text-white' },
+  'Substituição': { fundo: 'bg-sky-600', icone: ArrowLeftRight, cor: 'text-white' },
+  'Impedimento': { fundo: 'bg-slate-500', icone: Flag, cor: 'text-white' },
+  'Início da partida': { fundo: 'bg-[#526d32]', icone: Play, cor: 'text-white' },
+  'Intervalo': { fundo: 'bg-slate-500', icone: Pause, cor: 'text-white' },
+  'Fim da partida': { fundo: 'bg-[#526d32]', icone: Timer, cor: 'text-white' },
+}
+
+function estiloDoItem(titulo: string) {
+  const chave = titulo.startsWith('Gol/ponto') ? 'Gol/ponto' : titulo
+  return estilosDoTipo[chave] ?? { fundo: 'bg-[#747b70]', icone: CircleDot, cor: 'text-white' }
 }
 
 function formatDate(value: string | null) {
@@ -381,7 +410,7 @@ export default function PartidaDetalhesPage() {
             </p>
           </div>
         ) : (
-          <ol className="mt-6 space-y-4">
+                    <ol className="relative ml-4 mt-8 border-l-2 border-[#e5e7dd]">
             {historico.map((item) => {
               const teamName =
                 item.id_time === partida.id_time_a
@@ -390,11 +419,23 @@ export default function PartidaDetalhesPage() {
                     ? partida.time_b
                     : null
 
+              const estilo = estiloDoItem(item.titulo)
+              const Icone = estilo.icone
+
               return (
                 <li
                   key={item.chave}
-                  className="rounded-xl border border-[#e5e7dd] p-4"
+                  className="relative pb-7 pl-9 last:pb-0"
                 >
+                  <span
+                    aria-hidden="true"
+                    className={`absolute -left-[17px] top-0 flex size-8 items-center justify-center rounded-full border-4 border-white ${estilo.fundo}`}
+                  >
+                    <Icone
+                      className={`size-3.5 ${estilo.cor} ${estilo.preenchido ? 'fill-current' : ''}`}
+                    />
+                  </span>
+
                   <div className="flex flex-wrap items-center gap-2">
                     {item.minuto !== null && (
                       <span className="rounded-md bg-[#edf1e4] px-2 py-1 text-xs font-bold text-[#526d32]">
@@ -402,25 +443,19 @@ export default function PartidaDetalhesPage() {
                       </span>
                     )}
 
-                   <span className="font-semibold">
+                    <span className="font-semibold">
                       {item.titulo}
                     </span>
                   </div>
 
-                  {item.jogador && (
-                    <p className="mt-2 text-sm font-semibold">
-                      Jogador: {item.jogador}
-                    </p>
-                  )}
-
-                  {teamName && (
-                    <p className="mt-2 text-sm text-[#526d32]">
-                      Time: {teamName}
+                  {(item.jogador || teamName) && (
+                    <p className="mt-1 text-sm text-[#526d32]">
+                      {[item.jogador, teamName].filter(Boolean).join(' · ')}
                     </p>
                   )}
 
                   {item.descricao && (
-                    <p className="mt-2 text-sm text-[#747b70]">
+                    <p className="mt-1 text-sm text-[#747b70]">
                       {item.descricao}
                     </p>
                   )}
