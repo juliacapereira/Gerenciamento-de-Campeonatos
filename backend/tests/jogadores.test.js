@@ -37,8 +37,8 @@ test('cadastra jogador com SQL parametrizado e valores aparados', async () => {
   await route(app, '/api/jogadores', 'post')({ body: player }, res, error => { throw error; });
   assert.equal(res.statusCode, 201);
   assert.equal(res.body.id_jogador, 9);
-  assert.ok(captured.sql.includes('VALUES (?, ?, ?, ?)'));
-  assert.deepEqual(captured.values, ['Carlos Eduardo', '2000-05-10', '123.456.789-00', 'https://example.com/foto.jpg']);
+  assert.ok(captured.sql.includes('VALUES (?, ?, ?, ?, ?)'));
+  assert.deepEqual(captured.values, ['Carlos Eduardo', '2000-05-10', '123.456.789-00', 'https://example.com/foto.jpg', null]);
 });
 
 test('dados inválidos de jogador não chegam ao banco', async () => {
@@ -76,7 +76,7 @@ test('edita jogador, permite limpar opcionais e trata ausente', async () => {
   await route(app, '/api/jogadores/:id', 'put')({ params: { id: '4' }, body: { nome: 'Ana Souza', documento: '12345', data_nascimento: '', foto_url: '' } }, res, error => { throw error; });
   assert.equal(res.statusCode, 200);
   assert.ok(mutation.sql.startsWith('UPDATE jogador'));
-  assert.deepEqual(mutation.values, ['Ana Souza', null, '12345', null, '4']);
+  assert.deepEqual(mutation.values, ['Ana Souza', null, '12345', null, null, '4']);
   const missing = response();
   await route(createApp({ execute: async () => [[]] }), '/api/jogadores/:id', 'put')({ params: { id: '4' }, body: { nome: 'Ana Souza', documento: '12345' } }, missing, error => { throw error; });
   assert.equal(missing.statusCode, 404);
