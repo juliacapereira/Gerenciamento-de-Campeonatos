@@ -101,3 +101,11 @@ O motor em `backend/classificacao.js` recalcula a cada consulta usando os result
 Os registros de `criterio_desempate` são aplicados por `ordem`, após PTS. Aceita V/VITORIAS, SG/SALDO_GOLS, GP/GOLS_PRO, GS/GOLS_SOFRIDOS (menor primeiro), D/DERROTAS (menor primeiro) e E/EMPATES, além dos aliases no módulo. Sem configuração, mantém a sequência existente: vitórias, saldo e gols a favor. Empate completo usa ID para estabilidade. Critérios desconhecidos e ausência de regras retornam erro de configuração, evitando classificação incorreta.
 
 Não exige migração. A configuração administrativa das regras pertence às histórias dependentes. Reinicie a API após atualizar. Testes sem banco: `cd backend && node --test --test-isolation=none tests/classificacao.test.js tests/calendario.test.js`.
+
+## US23 — Estatísticas de times
+
+O perfil público `/times/:id` mostra partidas, vitórias, empates, derrotas, gols/pontos marcados e sofridos, saldo, pontos na classificação e aproveitamento. A rota pública `GET /api/times/:id/estatisticas` consolida todos os campeonatos, considerando somente partidas encerradas com resultado final.
+
+O resumo é recalculado em cada consulta, refletindo encerramentos e correções de placar sem precisar de migração ou totais persistidos. A página consulta automaticamente a cada 15 segundos e ao voltar à aba. O aproveitamento é `pontos obtidos / (partidas × pontos por vitória) × 100`, usando as regras do esporte; sem partidas vale 0%. Sem regra configurada, os demais totais continuam disponíveis e pontos/aproveitamento ficam indisponíveis.
+
+Reinicie a API após atualizar. Testes sem banco: `cd backend && node --test --test-isolation=none tests/*.test.js`.

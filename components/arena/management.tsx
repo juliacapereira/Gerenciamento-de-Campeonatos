@@ -21,6 +21,7 @@ import { SquadSection } from './elenco'
 import { EntriesSection } from './inscricoes'
 import { MatchesSection } from './partidas'
 import { ChampionshipSummary } from './calendario'
+import { TeamStatistics } from './estatisticas-time'
 import { useAdmin } from '@/hooks/use-admin'
 
 type Kind = 'campeonatos' | 'times'
@@ -1463,6 +1464,8 @@ export function ManagementDetail({
               </div>
             )}
           </div>
+
+          {!championship && <TeamStatistics key={id} id={id} />}
 
           <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
             <section className="rounded-2xl border border-[#e5e7dd] bg-white p-6 sm:p-8">
