@@ -470,34 +470,507 @@ export function Header() {
 }
 
 function HeroSection() {
-  return <section className="mx-auto max-w-[1240px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
-    <div className="hero-surface relative isolate min-h-[470px] overflow-hidden rounded-[20px] bg-[#19362b] sm:min-h-[490px] lg:min-h-[480px]">
-      <Image src="/images/arena-hero.png" alt="Campo de futebol de uma competição local ao entardecer" fill priority sizes="(max-width: 768px) 100vw, 1240px" className="-z-20 object-cover object-[62%_50%]" />
-      <div className="hero-overlay absolute inset-0 -z-10" />
-      <div className="relative z-10 flex min-h-[470px] flex-col justify-center px-6 py-12 sm:min-h-[490px] sm:px-10 lg:min-h-[480px] lg:px-[68px]">
-        <div className="mb-6 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.17em] text-[#def081] backdrop-blur-sm"><span className="size-1.5 rounded-full bg-[#d7f36a]" /> O esporte acontece aqui</div>
-        <h1 className="max-w-[610px] font-display text-[2.8rem] font-bold leading-[.98] tracking-[-.055em] text-white sm:text-6xl lg:text-[4.15rem]">Seu campeonato.<br />Sua torcida.<br /><span className="text-[#d7f36a]">Tudo em um só lugar.</span></h1>
-        <p className="mt-5 max-w-[440px] text-sm leading-6 text-white/75 sm:text-[15px]">Acompanhe campeonatos amadores, partidas, classificações, times e jogadores de forma simples e organizada.</p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Link href="/campeonatos" className="inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[13px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]">Ver campeonatos <ArrowRight className="size-4" /></Link>
-          <Link href="/jogos" className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-5 py-3.5 text-[13px] font-bold text-white backdrop-blur-sm transition hover:bg-white/20"><CalendarDays className="size-4" /> Próximos jogos</Link>
+
+  const {
+    records: teams
+  } = useHomeRecords<HomeTeam>('times')
+
+
+  const {
+    records: championships,
+    loading: loadingChampionships
+  } = useHomeRecords<HomeChampionship>(
+    'campeonatos'
+  )
+
+
+  const [featuredMatch, setFeaturedMatch] =
+    useState<HomeMatch | null>(null)
+
+
+  useEffect(() => {
+
+    if (loadingChampionships) {
+      return
+    }
+
+
+    if (!championships.length) {
+
+      setFeaturedMatch(null)
+
+      return
+    }
+
+
+    const controller =
+      new AbortController()
+
+
+    async function loadFeaturedMatch() {
+
+      try {
+
+        const responses =
+          await Promise.all(
+
+            championships.map(
+              async championship => {
+
+                const response =
+                  await fetch(
+                    `/api/campeonatos/${championship.id_campeonato}/partidas`,
+                    {
+                      cache: 'no-store',
+                      signal: controller.signal
+                    }
+                  )
+
+
+                if (!response.ok) {
+                  return []
+                }
+
+
+                const data =
+                  await response.json()
+
+
+                return data.map(
+                  (
+                    match: Omit<
+                      HomeMatch,
+                      'campeonato'
+                    >
+                  ) => ({
+
+                    ...match,
+
+                    campeonato:
+                      championship.nome
+
+                  })
+                )
+              }
+            )
+
+          )
+
+
+        const allMatches =
+          responses.flat()
+
+
+        // Prioridade 1:
+        // partida realmente em andamento.
+
+        const liveMatch =
+          allMatches.find(
+            match =>
+              match.status ===
+              'EM_ANDAMENTO'
+          )
+
+
+        if (liveMatch) {
+
+          setFeaturedMatch(
+            liveMatch
+          )
+
+          return
+        }
+
+
+        // Prioridade 2:
+        // próxima partida futura.
+
+        const now =
+          Date.now()
+
+
+        const nextMatch =
+          allMatches
+            .filter(match => {
+
+              if (!match.data_hora) {
+                return false
+              }
+
+
+              return (
+                new Date(
+                  match.data_hora
+                ).getTime() >= now
+              )
+
+            })
+            .sort((a, b) => {
+
+              return (
+                new Date(
+                  a.data_hora!
+                ).getTime()
+                -
+                new Date(
+                  b.data_hora!
+                ).getTime()
+              )
+
+            })[0]
+
+
+        setFeaturedMatch(
+          nextMatch || null
+        )
+
+
+      } catch (error) {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setFeaturedMatch(null)
+
+        }
+
+      }
+
+    }
+
+
+    void loadFeaturedMatch()
+
+
+    return () =>
+      controller.abort()
+
+
+  }, [
+    championships,
+    loadingChampionships
+  ])
+
+
+  const activeChampionships =
+    championships.filter(
+      championship =>
+        championship.status !==
+        'ENCERRADO'
+    ).length
+
+
+  const homeMark =
+    featuredMatch
+      ? featuredMatch.time_a
+          .split(' ')
+          .map(word => word[0])
+          .join('')
+          .slice(0, 3)
+          .toUpperCase()
+      : ''
+
+
+  const awayMark =
+    featuredMatch
+      ? featuredMatch.time_b
+          .split(' ')
+          .map(word => word[0])
+          .join('')
+          .slice(0, 3)
+          .toUpperCase()
+      : ''
+
+
+  const isLive =
+    featuredMatch?.status ===
+    'EM_ANDAMENTO'
+
+
+  const matchDate =
+    featuredMatch?.data_hora
+      ? new Date(
+          featuredMatch.data_hora
+        )
+      : null
+
+
+  return (
+
+    <section className="mx-auto max-w-[1240px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+
+      <div className="hero-surface relative isolate min-h-[470px] overflow-hidden rounded-[20px] bg-[#19362b] sm:min-h-[490px] lg:min-h-[480px]">
+
+        <Image
+          src="/images/arena-hero.png"
+          alt="Campo de futebol de uma competição local ao entardecer"
+          fill
+          priority
+          sizes="(max-width: 768px) 100vw, 1240px"
+          className="-z-20 object-cover object-[62%_50%]"
+        />
+
+
+        <div className="hero-overlay absolute inset-0 -z-10" />
+
+
+        <div className="relative z-10 flex min-h-[470px] flex-col justify-center px-6 py-12 sm:min-h-[490px] sm:px-10 lg:min-h-[480px] lg:px-[68px]">
+
+          <div className="mb-6 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.17em] text-[#def081] backdrop-blur-sm">
+
+            <span className="size-1.5 rounded-full bg-[#d7f36a]" />
+
+            O esporte acontece aqui
+
+          </div>
+
+
+          <h1 className="max-w-[610px] font-display text-[2.8rem] font-bold leading-[.98] tracking-[-.055em] text-white sm:text-6xl lg:text-[4.15rem]">
+
+            Seu campeonato.
+
+            <br />
+
+            Sua torcida.
+
+            <br />
+
+            <span className="text-[#d7f36a]">
+              Tudo em um só lugar.
+            </span>
+
+          </h1>
+
+
+          <p className="mt-5 max-w-[440px] text-sm leading-6 text-white/75 sm:text-[15px]">
+
+            Acompanhe campeonatos amadores,
+            partidas, classificações, times e
+            jogadores de forma simples e
+            organizada.
+
+          </p>
+
+
+          <div className="mt-7 flex flex-wrap gap-3">
+
+            <Link
+              href="/campeonatos"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[13px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]"
+            >
+
+              Ver campeonatos
+
+              <ArrowRight className="size-4" />
+
+            </Link>
+
+
+            <Link
+              href="/jogos"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-5 py-3.5 text-[13px] font-bold text-white backdrop-blur-sm transition hover:bg-white/20"
+            >
+
+              <CalendarDays className="size-4" />
+
+              Próximos jogos
+
+            </Link>
+
+          </div>
+
+
+          <div className="mt-9 flex items-center gap-5 text-[11px] font-medium text-white/70 sm:mt-10">
+
+            <span className="flex items-center gap-2">
+
+              <Users className="size-4 text-[#d7f36a]" />
+
+              {teams.length}
+              {' '}
+              {teams.length === 1
+                ? 'time cadastrado'
+                : 'times cadastrados'}
+
+            </span>
+
+
+            <span className="h-4 w-px bg-white/25" />
+
+
+            <span className="flex items-center gap-2">
+
+              <Trophy className="size-4 text-[#d7f36a]" />
+
+              {activeChampionships}
+              {' '}
+              {activeChampionships === 1
+                ? 'competição ativa'
+                : 'competições ativas'}
+
+            </span>
+
+          </div>
+
         </div>
-        <div className="mt-9 flex items-center gap-5 text-[11px] font-medium text-white/70 sm:mt-10">
-          <span className="flex items-center gap-2"><Users className="size-4 text-[#d7f36a]" /> 24 times ativos</span><span className="h-4 w-px bg-white/25" /><span className="flex items-center gap-2"><Trophy className="size-4 text-[#d7f36a]" /> 3 competições</span>
-        </div>
+
+
+        {featuredMatch && (
+
+          <Link
+            href={`/partidas/${featuredMatch.id_partida}`}
+            className="absolute bottom-6 right-6 hidden w-[220px] rounded-xl border border-white/15 bg-[#173529]/75 p-4 text-white shadow-xl backdrop-blur-md transition hover:bg-[#173529]/90 sm:block lg:bottom-8 lg:right-8"
+          >
+
+            <div className="flex items-center justify-between">
+
+              <span className="text-[9px] font-bold uppercase tracking-[.16em] text-white/65">
+
+                {isLive
+                  ? 'Jogo em destaque'
+                  : 'Próximo jogo'}
+
+              </span>
+
+
+              <span className="flex items-center gap-1 rounded-full bg-[#d7f36a]/15 px-2 py-1 text-[9px] font-bold text-[#d7f36a]">
+
+                <span className="size-1 rounded-full bg-[#d7f36a]" />
+
+                {isLive
+                  ? 'AO VIVO'
+                  : matchDate
+                    ? matchDate.toLocaleDateString(
+                        'pt-BR',
+                        {
+                          day: '2-digit',
+                          month: 'short'
+                        }
+                      ).replace('.', '').toUpperCase()
+                    : 'AGENDADO'}
+
+              </span>
+
+            </div>
+
+
+            <div className="mt-4 flex items-center justify-between">
+
+              <div className="flex max-w-[65px] flex-col items-center gap-1.5">
+
+                <TeamMark
+                  mark={homeMark}
+                  className="size-9 border-white/20 bg-white/10 text-white"
+                />
+
+                <span className="w-full truncate text-center text-[10px]">
+                  {featuredMatch.time_a}
+                </span>
+
+              </div>
+
+
+              <span className="font-display text-xl font-bold text-white/80">
+                VS
+              </span>
+
+
+              <div className="flex max-w-[65px] flex-col items-center gap-1.5">
+
+                <TeamMark
+                  mark={awayMark}
+                  className="size-9 border-white/20 bg-white/10 text-white"
+                />
+
+                <span className="w-full truncate text-center text-[10px]">
+                  {featuredMatch.time_b}
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <div className="mt-3 border-t border-white/15 pt-3 text-center text-[9px] text-white/55">
+
+              {featuredMatch.campeonato}
+
+              {matchDate && (
+                <>
+                  <span className="px-1">
+                    ·
+                  </span>
+
+                  {matchDate.toLocaleTimeString(
+                    'pt-BR',
+                    {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }
+                  )}
+                </>
+              )}
+
+            </div>
+
+          </Link>
+
+        )}
+
+
+        {featuredMatch && (
+
+          <div className="absolute bottom-5 right-5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[.15em] text-white/55 sm:hidden">
+
+            <span className="size-1.5 rounded-full bg-[#d7f36a]" />
+
+            {isLive
+              ? 'Acompanhe ao vivo'
+              : 'Próxima partida'}
+
+          </div>
+
+        )}
+
       </div>
-      <div className="absolute bottom-6 right-6 hidden w-[220px] rounded-xl border border-white/15 bg-[#173529]/75 p-4 text-white shadow-xl backdrop-blur-md sm:block lg:bottom-8 lg:right-8">
-        <div className="flex items-center justify-between"><span className="text-[9px] font-bold uppercase tracking-[.16em] text-white/65">Jogo em destaque</span><span className="flex items-center gap-1 rounded-full bg-[#d7f36a]/15 px-2 py-1 text-[9px] font-bold text-[#d7f36a]"><span className="size-1 rounded-full bg-[#d7f36a]" /> AO VIVO</span></div>
-        <div className="mt-4 flex items-center justify-between"><div className="flex flex-col items-center gap-1.5"><TeamMark mark="AC" className="size-9 border-white/20 bg-white/10 text-white"/><span className="text-[10px]">Atlético</span></div><span className="font-display text-2xl font-bold">2 <span className="text-white/35">:</span> 1</span><div className="flex flex-col items-center gap-1.5"><TeamMark mark="UF" className="size-9 border-white/20 bg-white/10 text-white"/><span className="text-[10px]">União FC</span></div></div>
-        <div className="mt-3 border-t border-white/15 pt-3 text-center text-[9px] text-white/55">Copa Regional 2026 <span className="px-1">·</span> 2º tempo</div>
+
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1 text-[11px] text-[#747b70]">
+
+        <span className="flex items-center gap-2">
+
+          <span className="relative flex size-2">
+
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#8ca742] opacity-50" />
+
+            <span className="relative inline-flex size-2 rounded-full bg-[#8ca742]" />
+
+          </span>
+
+          {activeChampionships > 0
+            ? 'Há competições ativas na plataforma'
+            : 'Nenhuma competição ativa no momento'}
+
+        </span>
+
+
+        <Link
+          href="/campeonatos"
+          className="group inline-flex items-center gap-1 font-bold text-[#364a3b]"
+        >
+
+          Explore as competições
+
+          <ArrowDownRight className="size-3.5 transition group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
+
+        </Link>
+
       </div>
-      <div className="absolute bottom-5 right-5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[.15em] text-white/55 sm:hidden"><span className="size-1.5 rounded-full bg-[#d7f36a]"/> Acompanhe ao vivo</div>
-    </div>
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1 text-[11px] text-[#747b70]">
-      <span className="flex items-center gap-2"><span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-[#8ca742] opacity-50"/><span className="relative inline-flex size-2 rounded-full bg-[#8ca742]"/></span> A temporada está acontecendo</span>
-      <Link href="/campeonatos" className="group inline-flex items-center gap-1 font-bold text-[#364a3b]">Explore as competições <ArrowDownRight className="size-3.5 transition group-hover:translate-x-0.5 group-hover:translate-y-0.5" /></Link>
-    </div>
-  </section>
+
+    </section>
+
+  )
 }
 
 function ChampionshipCard({ item }: { item: HomeChampionship }) {
@@ -1833,16 +2306,19 @@ function HighlightsSection() {
 
 function SearchSection() {
 
-  const {
-    records: teams,
-    loading: loadingTeams
-  } = useHomeRecords<HomeTeam>('times')
+  type SearchTeam = {
+    id_time: number
+    nome: string
+    nome_abreviado?: string | null
+    cidade?: string | null
+    esporte?: string | null
+  }
 
-
-  const {
-    records: players,
-    loading: loadingPlayers
-  } = useHomeRecords<HomePlayer>('jogadores')
+  type SearchPlayer = {
+    id_jogador: number
+    nome: string
+    posicao?: string | null
+  }
 
 
   const [query, setQuery] =
@@ -1851,89 +2327,141 @@ function SearchSection() {
   const [focused, setFocused] =
     useState(false)
 
+  const [teams, setTeams] =
+    useState<SearchTeam[]>([])
 
-  const entries = useMemo(
-    () => [
+  const [players, setPlayers] =
+    useState<SearchPlayer[]>([])
 
-      ...teams.map(team => ({
-        type: 'TIMES',
+  const [loading, setLoading] =
+    useState(false)
 
-        name: team.nome,
-
-        meta:
-          `${team.esporte}${
-            team.cidade
-              ? ` · ${team.cidade}`
-              : ''
-          }`,
-
-        href:
-          `/times/${team.id_time}`
-      })),
+  const [error, setError] =
+    useState(false)
 
 
-      ...players.map(player => ({
-        type: 'JOGADORES',
+  useEffect(() => {
 
-        name: player.nome,
-
-        meta:
-          player.posicao ||
-          'Jogador',
-
-        href:
-          `/jogadores/${player.id_jogador}`
-      }))
-
-    ],
-    [teams, players]
-  )
+    const term =
+      query.trim()
 
 
-  const filtered = useMemo(
-    () => {
+    if (!term) {
 
-      const search =
-        query.trim().toLowerCase()
+      setTeams([])
+      setPlayers([])
+      setLoading(false)
+      setError(false)
+
+      return
+    }
 
 
-      if (!search) {
-        return entries
-      }
+    const controller =
+      new AbortController()
 
 
-      return entries.filter(entry =>
-        `${entry.name} ${entry.meta}`
-          .toLowerCase()
-          .includes(search)
+    const timer =
+      setTimeout(
+        async () => {
+
+          setLoading(true)
+          setError(false)
+
+
+          try {
+
+            const response =
+              await fetch(
+                `/api/busca?q=${encodeURIComponent(term)}`,
+                {
+                  cache: 'no-store',
+                  signal: controller.signal
+                }
+              )
+
+
+            if (!response.ok) {
+              throw new Error(
+                'Erro na busca.'
+              )
+            }
+
+
+            const data =
+              await response.json()
+
+
+            setTeams(
+              Array.isArray(data.times)
+                ? data.times
+                : []
+            )
+
+
+            setPlayers(
+              Array.isArray(data.jogadores)
+                ? data.jogadores
+                : []
+            )
+
+
+          } catch (error) {
+
+            if (
+              !controller.signal.aborted
+            ) {
+
+              setError(true)
+              setTeams([])
+              setPlayers([])
+
+            }
+
+          } finally {
+
+            if (
+              !controller.signal.aborted
+            ) {
+
+              setLoading(false)
+
+            }
+
+          }
+
+        },
+        300
       )
 
-    },
-    [query, entries]
-  )
+
+    return () => {
+
+      clearTimeout(timer)
+
+      controller.abort()
+
+    }
+
+  }, [query])
 
 
-  const groups = [
-    'TIMES',
-    'JOGADORES'
-  ]
-
-
-  const loading =
-    loadingTeams ||
-    loadingPlayers
+  const hasResults =
+    teams.length > 0 ||
+    players.length > 0
 
 
   return (
 
     <section
       id="buscar"
-      className="section-wrap pt-10 sm:pt-12"
+      className="section-wrap relative z-30 pt-10 sm:pt-12"
     >
 
-      <div className="search-panel relative overflow-visible rounded-2xl bg-[#e9eddf] px-5 py-9 sm:px-10 sm:py-11">
+      <div className="search-panel relative z-30 overflow-visible rounded-2xl bg-[#e9eddf] px-5 py-9 sm:px-10 sm:py-11">
 
         <div className="mx-auto max-w-[660px] text-center">
+
 
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#778664]">
             Tudo começa por aqui
@@ -1951,6 +2479,7 @@ function SearchSection() {
 
 
           <div className="relative mt-6 text-left">
+
 
             <label
               htmlFor="arena-search"
@@ -1986,7 +2515,7 @@ function SearchSection() {
                   setTimeout(
                     () =>
                       setFocused(false),
-                    140
+                    150
                   )
                 }
                 onKeyDown={event => {
@@ -2016,64 +2545,54 @@ function SearchSection() {
             </div>
 
 
-            {focused && (
+            {focused &&
+              query.trim() && (
 
               <div
                 role="listbox"
-                aria-label="Sugestões de busca"
-                className="absolute inset-x-0 top-[calc(100%+8px)] z-20 max-h-[320px] overflow-y-auto rounded-xl border border-[#e6e8df] bg-white p-2 shadow-[0_20px_45px_-24px_rgba(20,42,30,.35)]"
+                aria-label="Resultados da busca"
+                className="absolute inset-x-0 top-[calc(100%+8px)] z-50 max-h-[340px] overflow-y-auto rounded-xl border border-[#e6e8df] bg-white p-2 shadow-[0_20px_45px_-24px_rgba(20,42,30,.35)]"
               >
+
 
                 {loading ? (
 
                   <p className="px-3 py-5 text-center text-xs text-[#858a80]">
-                    Carregando dados...
+                    Pesquisando...
                   </p>
 
-                ) : filtered.length ? (
+                ) : error ? (
 
-                  groups.map(group => {
+                  <p className="px-3 py-5 text-center text-xs text-[#a35b5b]">
+                    Não foi possível realizar a busca.
+                  </p>
 
-                    const rows =
-                      filtered.filter(
-                        entry =>
-                          entry.type ===
-                          group
-                      )
+                ) : hasResults ? (
 
-
-                    if (!rows.length) {
-                      return null
-                    }
+                  <>
 
 
-                    return (
+                    {teams.length > 0 && (
 
-                      <div key={group}>
+                      <div>
 
                         <p className="px-3 pb-1 pt-2 text-[9px] font-bold tracking-[.15em] text-[#979b91]">
-                          {group}
+                          TIMES
                         </p>
 
 
-                        {rows.map(entry => (
+                        {teams.map(team => (
 
                           <Link
-                            key={`${entry.type}-${entry.href}`}
+                            key={team.id_time}
                             role="option"
-                            href={entry.href}
+                            href={`/times/${team.id_time}`}
                             onMouseDown={event =>
                               event.preventDefault()
                             }
-                            onClick={() => {
-
-                              setQuery(
-                                entry.name
-                              )
-
+                            onClick={() =>
                               setFocused(false)
-
-                            }}
+                            }
                             className="flex items-center justify-between rounded-lg px-3 py-2.5 transition hover:bg-[#f4f5ee]"
                           >
 
@@ -2081,16 +2600,7 @@ function SearchSection() {
 
                               <span className="flex size-8 items-center justify-center rounded-lg bg-[#eef1e5] text-[#667b37]">
 
-                                {group ===
-                                'TIMES' ? (
-
-                                  <Shield className="size-4" />
-
-                                ) : (
-
-                                  <Users className="size-4" />
-
-                                )}
+                                <Shield className="size-4" />
 
                               </span>
 
@@ -2098,12 +2608,19 @@ function SearchSection() {
                               <span>
 
                                 <span className="block text-[12px] font-bold text-[#374638]">
-                                  {entry.name}
+                                  {team.nome}
                                 </span>
 
 
                                 <span className="mt-0.5 block text-[10px] text-[#858a80]">
-                                  {entry.meta}
+
+                                  {team.esporte ||
+                                    'Esporte não informado'}
+
+                                  {team.cidade
+                                    ? ` · ${team.cidade}`
+                                    : ''}
+
                                 </span>
 
                               </span>
@@ -2119,9 +2636,72 @@ function SearchSection() {
 
                       </div>
 
-                    )
+                    )}
 
-                  })
+
+                    {players.length > 0 && (
+
+                      <div>
+
+                        <p className="px-3 pb-1 pt-3 text-[9px] font-bold tracking-[.15em] text-[#979b91]">
+                          JOGADORES
+                        </p>
+
+
+                        {players.map(player => (
+
+                          <Link
+                            key={player.id_jogador}
+                            role="option"
+                            href={`/jogadores/${player.id_jogador}`}
+                            onMouseDown={event =>
+                              event.preventDefault()
+                            }
+                            onClick={() =>
+                              setFocused(false)
+                            }
+                            className="flex items-center justify-between rounded-lg px-3 py-2.5 transition hover:bg-[#f4f5ee]"
+                          >
+
+                            <span className="flex items-center gap-3">
+
+                              <span className="flex size-8 items-center justify-center rounded-lg bg-[#eef1e5] text-[#667b37]">
+
+                                <Users className="size-4" />
+
+                              </span>
+
+
+                              <span>
+
+                                <span className="block text-[12px] font-bold text-[#374638]">
+                                  {player.nome}
+                                </span>
+
+
+                                <span className="mt-0.5 block text-[10px] text-[#858a80]">
+
+                                  {player.posicao ||
+                                    'Jogador'}
+
+                                </span>
+
+                              </span>
+
+                            </span>
+
+
+                            <ArrowUpRight className="size-4 text-[#a0a597]" />
+
+                          </Link>
+
+                        ))}
+
+                      </div>
+
+                    )}
+
+                  </>
 
                 ) : (
 
