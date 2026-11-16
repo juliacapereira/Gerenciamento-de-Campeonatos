@@ -1,4 +1,5 @@
 import { registerStandingRoutes } from './classificacao.js';
+import { registerRankingRoutes } from './ranking.js';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -589,6 +590,7 @@ export function createApp(pool, { adminRouter } = {}) {
 
   registerCalendarRoutes(app, pool);
   registerStandingRoutes(app, pool);
+  registerRankingRoutes(app, pool);
   registerPlayerRoutes(app, pool);
   registerSquadRoutes(app, pool);
   registerEntryRoutes(app, pool);

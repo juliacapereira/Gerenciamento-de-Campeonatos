@@ -21,6 +21,7 @@ import { SquadSection } from './elenco'
 import { EntriesSection } from './inscricoes'
 import { ChampionshipSummary } from './calendario'
 import { MatchesSection } from './partidas'
+import { RankingSection } from './ranking'
 import { useAdmin } from '@/hooks/use-admin'
 
 type Kind = 'campeonatos' | 'times'
@@ -1626,6 +1627,10 @@ export function ManagementDetail({
               championshipId={id}
               canManage={canManage}
             />
+          )}
+
+          {championship && (
+            <RankingSection championshipId={id} />
           )}
 
           {canManage && (
