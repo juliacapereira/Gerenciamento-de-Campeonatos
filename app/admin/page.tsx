@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight,
+  BarChart3,
   CalendarDays,
   ClipboardCheck,
   LogOut,
@@ -59,6 +60,12 @@ type Usuario = {
     descricao: "Defina quantos pontos valem vitória, empate e derrota em cada esporte.",
     icone: Scale,
     href: "/regras",
+  },
+  {
+    titulo: "Estatísticas dos jogadores",
+    descricao: "Confira e corrija gols, partidas e cartões de cada atleta.",
+    icone: BarChart3,
+    href: "/admin/estatisticas",
   },
 ];
 

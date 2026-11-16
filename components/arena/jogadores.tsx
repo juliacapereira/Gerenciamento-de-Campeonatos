@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, IdCard, Pencil, Plus
 import { Footer, Header } from './arena-home'
 import { request } from './api'
 import { Avatar, PositionChips } from './shared'
+import { PlayerStats } from './estatisticas'
 import { useAdmin } from '@/hooks/use-admin'
 
 type PlayerTeam = {
@@ -835,6 +836,8 @@ export function PlayerDetail({
               </p>
             )}
           </section>
+
+          <PlayerStats id={id} />
 
           {isAdmin && (
             <dialog

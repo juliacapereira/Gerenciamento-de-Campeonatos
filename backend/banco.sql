@@ -419,6 +419,55 @@ CREATE TABLE IF NOT EXISTS criterio_desempate (
 
 
 -- ============================================================
+-- 15. AJUSTES DE ESTATÍSTICAS DOS JOGADORES (US24)
+-- ============================================================
+--
+-- Guarda a correção feita por um administrador nas estatísticas
+-- de um atleta em um campeonato. Os valores são a DIFERENÇA em
+-- relação ao que o sistema calcula (podem ser negativos).
+-- O backend (estatisticas.js) também cria esta tabela sozinho
+-- caso ela ainda não exista.
+
+CREATE TABLE IF NOT EXISTS ajuste_estatistica (
+    id_ajuste BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    id_jogador BIGINT UNSIGNED NOT NULL,
+    id_campeonato BIGINT UNSIGNED NOT NULL,
+
+    gols INT NOT NULL DEFAULT 0,
+    partidas INT NOT NULL DEFAULT 0,
+    cartoes_amarelos INT NOT NULL DEFAULT 0,
+    cartoes_vermelhos INT NOT NULL DEFAULT 0,
+
+    observacao VARCHAR(255),
+
+    id_usuario BIGINT UNSIGNED,
+
+    atualizado_em TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_ajuste_jogador
+        FOREIGN KEY (id_jogador)
+        REFERENCES jogador(id_jogador)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_ajuste_campeonato
+        FOREIGN KEY (id_campeonato)
+        REFERENCES campeonato(id_campeonato)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_ajuste_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE SET NULL,
+
+    CONSTRAINT uq_ajuste_jogador_campeonato
+        UNIQUE (id_jogador, id_campeonato)
+);
+
+
+-- ============================================================
 -- TRIGGER 1
 -- VALIDAR TIMES AO CADASTRAR PARTIDA
 -- ============================================================

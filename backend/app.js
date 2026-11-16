@@ -16,6 +16,7 @@ import { registerSportRoutes } from './esportes.js';
 import { registerCalendarRoutes } from './calendario.js';
 import { registerResultRoutes } from './resultados.js';
 import { registerRuleRoutes } from './regras.js';
+import { registerStatsRoutes } from './estatisticas.js';
 
 
 export function createApp(pool, { adminRouter } = {}) {
@@ -598,6 +599,7 @@ export function createApp(pool, { adminRouter } = {}) {
   registerMatchRoutes(app, pool);
   registerResultRoutes(app, pool);     
   registerRuleRoutes(app, pool);
+  registerStatsRoutes(app, pool);
 
 
   // ============================================================
