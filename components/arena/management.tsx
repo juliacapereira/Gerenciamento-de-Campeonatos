@@ -20,6 +20,7 @@ import { Header, Footer } from './arena-home'
 import { SquadSection } from './elenco'
 import { EntriesSection } from './inscricoes'
 import { MatchesSection } from './partidas'
+import { RankingSection } from './ranking'
 import { ChampionshipSummary } from './calendario'
 import { TeamStatistics } from './estatisticas-time'
 import { useAdmin } from '@/hooks/use-admin'
@@ -1629,6 +1630,10 @@ export function ManagementDetail({
               championshipId={id}
               canManage={canManage}
             />
+          )}
+
+          {championship && (
+            <RankingSection championshipId={id} />
           )}
 
           {canManage && (

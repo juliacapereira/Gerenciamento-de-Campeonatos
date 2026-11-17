@@ -1,4 +1,5 @@
 import { registerStandingRoutes } from './classificacao.js';
+import { registerRankingRoutes } from './ranking.js';
 import { registerTeamStatisticsRoutes } from './estatisticas-times.js';
 import express from 'express';
 import cors from 'cors';
@@ -18,6 +19,7 @@ import { registerEventRoutes } from './acontecimentos.js';
 import { registerCalendarRoutes } from './calendario.js';
 import { registerSearchRoutes } from './busca.js';
 import { registerRuleRoutes } from './regras.js';
+import { registerStatsRoutes } from './estatisticas.js';
 
 
 export function createApp(pool, { adminRouter } = {}) {
@@ -592,6 +594,7 @@ export function createApp(pool, { adminRouter } = {}) {
 
   registerCalendarRoutes(app, pool);
   registerStandingRoutes(app, pool);
+  registerRankingRoutes(app, pool);
   registerTeamStatisticsRoutes(app, pool);
   registerPlayerRoutes(app, pool);
   registerSquadRoutes(app, pool);
@@ -602,6 +605,7 @@ export function createApp(pool, { adminRouter } = {}) {
   registerResultRoutes(app, pool);
   registerSearchRoutes(app, pool);   
   registerRuleRoutes(app, pool);
+  registerStatsRoutes(app, pool);
 
 
   // ============================================================
