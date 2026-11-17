@@ -85,7 +85,102 @@ export function registerResultRoutes(app, pool) {
 
     next(error);
   }
+// ============================================================
+// GET /api/campeonatos/:id/artilharia
+//
+// Público.
+// Soma os gols/pontos cadastrados para cada jogador
+// nas partidas do campeonato.
+// ============================================================
 
+app.get(
+  '/api/campeonatos/:id/artilharia',
+  async (req, res, next) => {
+
+    if (!validId(req.params.id)) {
+      return res.status(400).json({
+        erro: 'Identificador de campeonato inválido.',
+      });
+    }
+
+    try {
+
+      const [campeonatos] =
+        await pool.execute(
+          `
+            SELECT id_campeonato
+            FROM campeonato
+            WHERE id_campeonato = ?
+          `,
+          [req.params.id]
+        );
+
+
+      if (!campeonatos.length) {
+        return res.status(404).json({
+          erro: 'Campeonato não encontrado.',
+        });
+      }
+
+
+      const [rows] =
+        await pool.execute(
+          `
+            SELECT
+              j.id_jogador,
+              j.nome AS jogador,
+
+              t.id_time,
+              t.nome AS time,
+
+              SUM(pt.quantidade) AS pontos
+
+            FROM pontuacao pt
+
+            INNER JOIN partida p
+              ON p.id_partida = pt.id_partida
+
+            INNER JOIN jogador j
+              ON j.id_jogador = pt.id_jogador
+
+            INNER JOIN time t
+              ON t.id_time = pt.id_time
+
+            WHERE p.id_campeonato = ?
+
+            GROUP BY
+              j.id_jogador,
+              j.nome,
+              t.id_time,
+              t.nome
+
+            ORDER BY
+              pontos DESC,
+              jogador ASC
+          `,
+          [req.params.id]
+        );
+
+
+      res.set(
+        'Cache-Control',
+        'no-store'
+      );
+
+
+      res.json(
+        rows.map(row => ({
+          ...row,
+          pontos: Number(row.pontos)
+        }))
+      );
+
+    } catch (error) {
+      next(error);
+    }
+
+  }
+);
 
   // ============================================================
   // GET /api/partidas/:id/placar

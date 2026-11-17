@@ -21,6 +21,54 @@ import {
 
 type HomeChampionship = { id_campeonato: number; nome: string; esporte: string; data_inicial: string; data_fim: string; status: string }
 type HomeTeam = { id_time: number; nome: string; nome_abreviado?: string; esporte: string; cidade?: string }
+type HomePlayer = {
+  id_jogador: number
+  nome: string
+  posicao?: string | null
+}
+type HomeMatch = {
+  id_partida: number
+  id_campeonato: number
+  id_time_a: number
+  id_time_b: number
+  data_hora: string | null
+  local?: string | null
+  status?: string | null
+  clima?: string | null
+  time_a: string
+  time_b: string
+  campeonato: string
+}
+type HomeResult = {
+  id_partida: number
+  id_campeonato: number
+  time_a: string
+  time_b: string
+  data_hora: string | null
+  placar_time_a: number
+  placar_time_b: number
+  campeonato: string
+}
+type HomeStanding = {
+  posicao: number
+  id_time: number
+  time: string
+  pj: number
+  v: number
+  e: number
+  d: number
+  gp: number
+  gs: number
+  sg: number
+  pts: number
+}
+type HomeScorer = {
+  id_jogador: number
+  jogador: string
+  id_time: number
+  time: string
+  pontos: number
+}
 const statusLabels: Record<string, string> = { PLANEJADO: 'Planejado', INSCRICOES: 'Inscrições abertas', EM_ANDAMENTO: 'Em andamento', ENCERRADO: 'Encerrado' }
 function useHomeRecords<T>(kind: string) {
   const [records, setRecords] = useState<T[]>([])
@@ -38,33 +86,192 @@ function useHomeRecords<T>(kind: string) {
   return { records, loading, error }
 }
 
-const matches = [
-  { day: 'HOJE', date: '24 MAI', time: '19:30', home: 'Atlético Central', away: 'União FC', homeMark: 'AC', awayMark: 'UF', place: 'Estádio Municipal', tournament: 'Copa Regional 2026' },
-  { day: 'HOJE', date: '24 MAI', time: '20:00', home: 'Vila Nova', away: 'Real Independente', homeMark: 'VN', awayMark: 'RI', place: 'Campo do Parque', tournament: 'Copa Regional 2026' },
-  { day: 'AMANHÃ', date: '25 MAI', time: '18:45', home: 'Nacional FC', away: 'Associação Primavera', homeMark: 'NF', awayMark: 'AP', place: 'Arena Norte', tournament: 'Copa Regional 2026' },
-  { day: 'DOM, 26 MAI', date: '26 MAI', time: '16:00', home: 'Esporte Clube Norte', away: 'Juventus Municipal', homeMark: 'EN', awayMark: 'JM', place: 'Campo do Norte', tournament: 'Copa Regional 2026' },
-]
+function MatchCard({
+  match,
+  index
+}: {
+  match: HomeMatch
+  index: number
+}) {
 
-const results = [
-  { home: 'Atlético Central', away: 'União FC', homeMark: 'AC', awayMark: 'UF', score: '3 — 1', date: '22 mai', tournament: 'Copa Regional' },
-  { home: 'Vila Nova', away: 'Nacional FC', homeMark: 'VN', awayMark: 'NF', score: '2 — 2', date: '21 mai', tournament: 'Copa Regional' },
-  { home: 'Real Independente', away: 'Associação Primavera', homeMark: 'RI', awayMark: 'AP', score: '1 — 0', date: '20 mai', tournament: 'Copa Regional' },
-]
+  const matchDate =
+    match.data_hora
+      ? new Date(match.data_hora)
+      : null
 
-const standings = [
-  { pos: 1, team: 'Atlético Central', mark: 'AC', pj: 6, v: 5, e: 1, d: 0, sg: '+12', pts: 16 },
-  { pos: 2, team: 'União FC', mark: 'UF', pj: 6, v: 4, e: 1, d: 1, sg: '+8', pts: 13 },
-  { pos: 3, team: 'Vila Nova', mark: 'VN', pj: 6, v: 3, e: 2, d: 1, sg: '+5', pts: 11 },
-  { pos: 4, team: 'Real Independente', mark: 'RI', pj: 6, v: 3, e: 1, d: 2, sg: '+3', pts: 10 },
-  { pos: 5, team: 'Nacional FC', mark: 'NF', pj: 6, v: 2, e: 2, d: 2, sg: '+1', pts: 8 },
-]
 
-const scorers = [
-  { name: 'Lucas Mendes', team: 'Atlético Central', goals: 9, initials: 'LM', color: 'lime' },
-  { name: 'Rafael Silva', team: 'União FC', goals: 7, initials: 'RS', color: 'peach' },
-  { name: 'Pedro Santos', team: 'Vila Nova', goals: 6, initials: 'PS', color: 'blue' },
-]
+  const day =
+    matchDate
+      ? matchDate.toLocaleDateString(
+          'pt-BR',
+          {
+            weekday: 'short'
+          }
+        ).replace('.', '').toUpperCase()
+      : 'SEM DATA'
 
+
+  const date =
+    matchDate
+      ? matchDate.toLocaleDateString(
+          'pt-BR',
+          {
+            day: '2-digit',
+            month: 'short'
+          }
+        ).replace('.', '').toUpperCase()
+      : '—'
+
+
+  const time =
+    matchDate
+      ? matchDate.toLocaleTimeString(
+          'pt-BR',
+          {
+            hour: '2-digit',
+            minute: '2-digit'
+          }
+        )
+      : '--:--'
+
+
+  const homeMark =
+    match.time_a
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .slice(0, 3)
+      .toUpperCase()
+
+
+  const awayMark =
+    match.time_b
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .slice(0, 3)
+      .toUpperCase()
+
+
+  return (
+
+    <article
+      className={`match-card ${
+        index === 0
+          ? 'match-feature'
+          : ''
+      }`}
+    >
+
+      <div className="match-time">
+
+        <span
+          className={
+            index === 0
+              ? 'text-[#b3d653]'
+              : 'text-[#8b9087]'
+          }
+        >
+          {day}
+        </span>
+
+        <strong>
+          {time}
+        </strong>
+
+        <span>
+          {date}
+        </span>
+
+      </div>
+
+
+      <div className="match-teams">
+
+        <div className="match-side">
+
+          <TeamMark
+            mark={homeMark}
+            className={
+              index === 0
+                ? 'match-mark-light'
+                : ''
+            }
+          />
+
+          <span>
+            {match.time_a}
+          </span>
+
+        </div>
+
+
+        <span className="match-vs">
+          VS
+        </span>
+
+
+        <div className="match-side match-away">
+
+          <TeamMark
+            mark={awayMark}
+            className={
+              index === 0
+                ? 'match-mark-light'
+                : ''
+            }
+          />
+
+          <span>
+            {match.time_b}
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div className="match-meta">
+
+        <span>
+
+          <MapPin className="size-3.5" />
+
+          {match.local ||
+            'Local não informado'}
+
+        </span>
+
+
+        <span>
+
+          <Trophy className="size-3.5" />
+
+          {match.campeonato}
+
+        </span>
+
+      </div>
+
+
+      <Link
+        href={`/partidas/${match.id_partida}`}
+        aria-label={`Detalhes de ${match.time_a} contra ${match.time_b}`}
+        className={`match-arrow ${
+          index === 0
+            ? 'match-arrow-light'
+            : ''
+        }`}
+      >
+
+        <ArrowUpRight className="size-4" />
+
+      </Link>
+
+    </article>
+
+  )
+}
 
 function SectionHeading({ eyebrow, title, href, linkLabel = 'Ver todos' }: { eyebrow: string; title: string; href: string; linkLabel?: string }) {
   return (
@@ -263,34 +470,507 @@ export function Header() {
 }
 
 function HeroSection() {
-  return <section className="mx-auto max-w-[1240px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
-    <div className="hero-surface relative isolate min-h-[470px] overflow-hidden rounded-[20px] bg-[#19362b] sm:min-h-[490px] lg:min-h-[480px]">
-      <Image src="/images/arena-hero.png" alt="Campo de futebol de uma competição local ao entardecer" fill priority sizes="(max-width: 768px) 100vw, 1240px" className="-z-20 object-cover object-[62%_50%]" />
-      <div className="hero-overlay absolute inset-0 -z-10" />
-      <div className="relative z-10 flex min-h-[470px] flex-col justify-center px-6 py-12 sm:min-h-[490px] sm:px-10 lg:min-h-[480px] lg:px-[68px]">
-        <div className="mb-6 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.17em] text-[#def081] backdrop-blur-sm"><span className="size-1.5 rounded-full bg-[#d7f36a]" /> O esporte acontece aqui</div>
-        <h1 className="max-w-[610px] font-display text-[2.8rem] font-bold leading-[.98] tracking-[-.055em] text-white sm:text-6xl lg:text-[4.15rem]">Seu campeonato.<br />Sua torcida.<br /><span className="text-[#d7f36a]">Tudo em um só lugar.</span></h1>
-        <p className="mt-5 max-w-[440px] text-sm leading-6 text-white/75 sm:text-[15px]">Acompanhe campeonatos amadores, partidas, classificações, times e jogadores de forma simples e organizada.</p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Link href="/campeonatos" className="inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[13px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]">Ver campeonatos <ArrowRight className="size-4" /></Link>
-          <Link href="/jogos" className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-5 py-3.5 text-[13px] font-bold text-white backdrop-blur-sm transition hover:bg-white/20"><CalendarDays className="size-4" /> Próximos jogos</Link>
+
+  const {
+    records: teams
+  } = useHomeRecords<HomeTeam>('times')
+
+
+  const {
+    records: championships,
+    loading: loadingChampionships
+  } = useHomeRecords<HomeChampionship>(
+    'campeonatos'
+  )
+
+
+  const [featuredMatch, setFeaturedMatch] =
+    useState<HomeMatch | null>(null)
+
+
+  useEffect(() => {
+
+    if (loadingChampionships) {
+      return
+    }
+
+
+    if (!championships.length) {
+
+      setFeaturedMatch(null)
+
+      return
+    }
+
+
+    const controller =
+      new AbortController()
+
+
+    async function loadFeaturedMatch() {
+
+      try {
+
+        const responses =
+          await Promise.all(
+
+            championships.map(
+              async championship => {
+
+                const response =
+                  await fetch(
+                    `/api/campeonatos/${championship.id_campeonato}/partidas`,
+                    {
+                      cache: 'no-store',
+                      signal: controller.signal
+                    }
+                  )
+
+
+                if (!response.ok) {
+                  return []
+                }
+
+
+                const data =
+                  await response.json()
+
+
+                return data.map(
+                  (
+                    match: Omit<
+                      HomeMatch,
+                      'campeonato'
+                    >
+                  ) => ({
+
+                    ...match,
+
+                    campeonato:
+                      championship.nome
+
+                  })
+                )
+              }
+            )
+
+          )
+
+
+        const allMatches =
+          responses.flat()
+
+
+        // Prioridade 1:
+        // partida realmente em andamento.
+
+        const liveMatch =
+          allMatches.find(
+            match =>
+              match.status ===
+              'EM_ANDAMENTO'
+          )
+
+
+        if (liveMatch) {
+
+          setFeaturedMatch(
+            liveMatch
+          )
+
+          return
+        }
+
+
+        // Prioridade 2:
+        // próxima partida futura.
+
+        const now =
+          Date.now()
+
+
+        const nextMatch =
+          allMatches
+            .filter(match => {
+
+              if (!match.data_hora) {
+                return false
+              }
+
+
+              return (
+                new Date(
+                  match.data_hora
+                ).getTime() >= now
+              )
+
+            })
+            .sort((a, b) => {
+
+              return (
+                new Date(
+                  a.data_hora!
+                ).getTime()
+                -
+                new Date(
+                  b.data_hora!
+                ).getTime()
+              )
+
+            })[0]
+
+
+        setFeaturedMatch(
+          nextMatch || null
+        )
+
+
+      } catch (error) {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setFeaturedMatch(null)
+
+        }
+
+      }
+
+    }
+
+
+    void loadFeaturedMatch()
+
+
+    return () =>
+      controller.abort()
+
+
+  }, [
+    championships,
+    loadingChampionships
+  ])
+
+
+  const activeChampionships =
+    championships.filter(
+      championship =>
+        championship.status !==
+        'ENCERRADO'
+    ).length
+
+
+  const homeMark =
+    featuredMatch
+      ? featuredMatch.time_a
+          .split(' ')
+          .map(word => word[0])
+          .join('')
+          .slice(0, 3)
+          .toUpperCase()
+      : ''
+
+
+  const awayMark =
+    featuredMatch
+      ? featuredMatch.time_b
+          .split(' ')
+          .map(word => word[0])
+          .join('')
+          .slice(0, 3)
+          .toUpperCase()
+      : ''
+
+
+  const isLive =
+    featuredMatch?.status ===
+    'EM_ANDAMENTO'
+
+
+  const matchDate =
+    featuredMatch?.data_hora
+      ? new Date(
+          featuredMatch.data_hora
+        )
+      : null
+
+
+  return (
+
+    <section className="mx-auto max-w-[1240px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+
+      <div className="hero-surface relative isolate min-h-[470px] overflow-hidden rounded-[20px] bg-[#19362b] sm:min-h-[490px] lg:min-h-[480px]">
+
+        <Image
+          src="/images/arena-hero.png"
+          alt="Campo de futebol de uma competição local ao entardecer"
+          fill
+          priority
+          sizes="(max-width: 768px) 100vw, 1240px"
+          className="-z-20 object-cover object-[62%_50%]"
+        />
+
+
+        <div className="hero-overlay absolute inset-0 -z-10" />
+
+
+        <div className="relative z-10 flex min-h-[470px] flex-col justify-center px-6 py-12 sm:min-h-[490px] sm:px-10 lg:min-h-[480px] lg:px-[68px]">
+
+          <div className="mb-6 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.17em] text-[#def081] backdrop-blur-sm">
+
+            <span className="size-1.5 rounded-full bg-[#d7f36a]" />
+
+            O esporte acontece aqui
+
+          </div>
+
+
+          <h1 className="max-w-[610px] font-display text-[2.8rem] font-bold leading-[.98] tracking-[-.055em] text-white sm:text-6xl lg:text-[4.15rem]">
+
+            Seu campeonato.
+
+            <br />
+
+            Sua torcida.
+
+            <br />
+
+            <span className="text-[#d7f36a]">
+              Tudo em um só lugar.
+            </span>
+
+          </h1>
+
+
+          <p className="mt-5 max-w-[440px] text-sm leading-6 text-white/75 sm:text-[15px]">
+
+            Acompanhe campeonatos amadores,
+            partidas, classificações, times e
+            jogadores de forma simples e
+            organizada.
+
+          </p>
+
+
+          <div className="mt-7 flex flex-wrap gap-3">
+
+            <Link
+              href="/campeonatos"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#d7f36a] px-5 py-3.5 text-[13px] font-extrabold text-[#1b3428] transition hover:bg-[#e6ff8c]"
+            >
+
+              Ver campeonatos
+
+              <ArrowRight className="size-4" />
+
+            </Link>
+
+
+            <Link
+              href="/jogos"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-5 py-3.5 text-[13px] font-bold text-white backdrop-blur-sm transition hover:bg-white/20"
+            >
+
+              <CalendarDays className="size-4" />
+
+              Próximos jogos
+
+            </Link>
+
+          </div>
+
+
+          <div className="mt-9 flex items-center gap-5 text-[11px] font-medium text-white/70 sm:mt-10">
+
+            <span className="flex items-center gap-2">
+
+              <Users className="size-4 text-[#d7f36a]" />
+
+              {teams.length}
+              {' '}
+              {teams.length === 1
+                ? 'time cadastrado'
+                : 'times cadastrados'}
+
+            </span>
+
+
+            <span className="h-4 w-px bg-white/25" />
+
+
+            <span className="flex items-center gap-2">
+
+              <Trophy className="size-4 text-[#d7f36a]" />
+
+              {activeChampionships}
+              {' '}
+              {activeChampionships === 1
+                ? 'competição ativa'
+                : 'competições ativas'}
+
+            </span>
+
+          </div>
+
         </div>
-        <div className="mt-9 flex items-center gap-5 text-[11px] font-medium text-white/70 sm:mt-10">
-          <span className="flex items-center gap-2"><Users className="size-4 text-[#d7f36a]" /> 24 times ativos</span><span className="h-4 w-px bg-white/25" /><span className="flex items-center gap-2"><Trophy className="size-4 text-[#d7f36a]" /> 3 competições</span>
-        </div>
+
+
+        {featuredMatch && (
+
+          <Link
+            href={`/partidas/${featuredMatch.id_partida}`}
+            className="absolute bottom-6 right-6 hidden w-[220px] rounded-xl border border-white/15 bg-[#173529]/75 p-4 text-white shadow-xl backdrop-blur-md transition hover:bg-[#173529]/90 sm:block lg:bottom-8 lg:right-8"
+          >
+
+            <div className="flex items-center justify-between">
+
+              <span className="text-[9px] font-bold uppercase tracking-[.16em] text-white/65">
+
+                {isLive
+                  ? 'Jogo em destaque'
+                  : 'Próximo jogo'}
+
+              </span>
+
+
+              <span className="flex items-center gap-1 rounded-full bg-[#d7f36a]/15 px-2 py-1 text-[9px] font-bold text-[#d7f36a]">
+
+                <span className="size-1 rounded-full bg-[#d7f36a]" />
+
+                {isLive
+                  ? 'AO VIVO'
+                  : matchDate
+                    ? matchDate.toLocaleDateString(
+                        'pt-BR',
+                        {
+                          day: '2-digit',
+                          month: 'short'
+                        }
+                      ).replace('.', '').toUpperCase()
+                    : 'AGENDADO'}
+
+              </span>
+
+            </div>
+
+
+            <div className="mt-4 flex items-center justify-between">
+
+              <div className="flex max-w-[65px] flex-col items-center gap-1.5">
+
+                <TeamMark
+                  mark={homeMark}
+                  className="size-9 border-white/20 bg-white/10 text-white"
+                />
+
+                <span className="w-full truncate text-center text-[10px]">
+                  {featuredMatch.time_a}
+                </span>
+
+              </div>
+
+
+              <span className="font-display text-xl font-bold text-white/80">
+                VS
+              </span>
+
+
+              <div className="flex max-w-[65px] flex-col items-center gap-1.5">
+
+                <TeamMark
+                  mark={awayMark}
+                  className="size-9 border-white/20 bg-white/10 text-white"
+                />
+
+                <span className="w-full truncate text-center text-[10px]">
+                  {featuredMatch.time_b}
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <div className="mt-3 border-t border-white/15 pt-3 text-center text-[9px] text-white/55">
+
+              {featuredMatch.campeonato}
+
+              {matchDate && (
+                <>
+                  <span className="px-1">
+                    ·
+                  </span>
+
+                  {matchDate.toLocaleTimeString(
+                    'pt-BR',
+                    {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }
+                  )}
+                </>
+              )}
+
+            </div>
+
+          </Link>
+
+        )}
+
+
+        {featuredMatch && (
+
+          <div className="absolute bottom-5 right-5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[.15em] text-white/55 sm:hidden">
+
+            <span className="size-1.5 rounded-full bg-[#d7f36a]" />
+
+            {isLive
+              ? 'Acompanhe ao vivo'
+              : 'Próxima partida'}
+
+          </div>
+
+        )}
+
       </div>
-      <div className="absolute bottom-6 right-6 hidden w-[220px] rounded-xl border border-white/15 bg-[#173529]/75 p-4 text-white shadow-xl backdrop-blur-md sm:block lg:bottom-8 lg:right-8">
-        <div className="flex items-center justify-between"><span className="text-[9px] font-bold uppercase tracking-[.16em] text-white/65">Jogo em destaque</span><span className="flex items-center gap-1 rounded-full bg-[#d7f36a]/15 px-2 py-1 text-[9px] font-bold text-[#d7f36a]"><span className="size-1 rounded-full bg-[#d7f36a]" /> AO VIVO</span></div>
-        <div className="mt-4 flex items-center justify-between"><div className="flex flex-col items-center gap-1.5"><TeamMark mark="AC" className="size-9 border-white/20 bg-white/10 text-white"/><span className="text-[10px]">Atlético</span></div><span className="font-display text-2xl font-bold">2 <span className="text-white/35">:</span> 1</span><div className="flex flex-col items-center gap-1.5"><TeamMark mark="UF" className="size-9 border-white/20 bg-white/10 text-white"/><span className="text-[10px]">União FC</span></div></div>
-        <div className="mt-3 border-t border-white/15 pt-3 text-center text-[9px] text-white/55">Copa Regional 2026 <span className="px-1">·</span> 2º tempo</div>
+
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1 text-[11px] text-[#747b70]">
+
+        <span className="flex items-center gap-2">
+
+          <span className="relative flex size-2">
+
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#8ca742] opacity-50" />
+
+            <span className="relative inline-flex size-2 rounded-full bg-[#8ca742]" />
+
+          </span>
+
+          {activeChampionships > 0
+            ? 'Há competições ativas na plataforma'
+            : 'Nenhuma competição ativa no momento'}
+
+        </span>
+
+
+        <Link
+          href="/campeonatos"
+          className="group inline-flex items-center gap-1 font-bold text-[#364a3b]"
+        >
+
+          Explore as competições
+
+          <ArrowDownRight className="size-3.5 transition group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
+
+        </Link>
+
       </div>
-      <div className="absolute bottom-5 right-5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[.15em] text-white/55 sm:hidden"><span className="size-1.5 rounded-full bg-[#d7f36a]"/> Acompanhe ao vivo</div>
-    </div>
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1 text-[11px] text-[#747b70]">
-      <span className="flex items-center gap-2"><span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-[#8ca742] opacity-50"/><span className="relative inline-flex size-2 rounded-full bg-[#8ca742]"/></span> A temporada está acontecendo</span>
-      <Link href="/campeonatos" className="group inline-flex items-center gap-1 font-bold text-[#364a3b]">Explore as competições <ArrowDownRight className="size-3.5 transition group-hover:translate-x-0.5 group-hover:translate-y-0.5" /></Link>
-    </div>
-  </section>
+
+    </section>
+
+  )
 }
 
 function ChampionshipCard({ item }: { item: HomeChampionship }) {
@@ -372,66 +1052,1245 @@ function ChampionshipsSection() {
   )
 }
 
-function MatchCard({ match, index }: { match: (typeof matches)[number]; index: number }) {
-  return <article className={`match-card ${index === 0 ? 'match-feature' : ''}`}>
-    <div className="match-time"><span className={index === 0 ? 'text-[#b3d653]' : 'text-[#8b9087]'}>{match.day}</span><strong>{match.time}</strong><span>{match.date}</span></div>
-    <div className="match-teams">
-      <div className="match-side"><TeamMark mark={match.homeMark} className={index === 0 ? 'match-mark-light' : ''}/><span>{match.home}</span></div>
-      <span className="match-vs">VS</span>
-      <div className="match-side match-away"><TeamMark mark={match.awayMark} className={index === 0 ? 'match-mark-light' : ''}/><span>{match.away}</span></div>
-    </div>
-    <div className="match-meta"><span><MapPin className="size-3.5" />{match.place}</span><span><Trophy className="size-3.5" />{match.tournament}</span></div>
-    <Link href="/jogos" aria-label={`Detalhes de ${match.home} contra ${match.away}`} className={`match-arrow ${index === 0 ? 'match-arrow-light' : ''}`}><ArrowUpRight className="size-4" /></Link>
-  </article>
-}
-
 function MatchesSection() {
-  return <section className="bg-[#f0f1e9] py-16 sm:py-[72px]">
-    <div className="section-wrap">
-      <SectionHeading eyebrow="A bola vai rolar" title="Próximos jogos" href="/jogos" linkLabel="Calendário completo" />
-      <div className="flex flex-col gap-3">{matches.map((match, index) => <MatchCard key={`${match.home}-${match.away}`} match={match} index={index} />)}</div>
-      <div className="mt-6 flex justify-center sm:hidden"><Link href="/jogos" className="inline-flex items-center gap-2 rounded-lg border border-[#d7dbce] px-4 py-3 text-[12px] font-bold text-[#34483a]">Ver calendário completo <ArrowRight className="size-4" /></Link></div>
-    </div>
-  </section>
+
+  const {
+    records: championships,
+    loading: loadingChampionships
+  } = useHomeRecords<HomeChampionship>(
+    'campeonatos'
+  )
+
+
+  const [matches, setMatches] =
+    useState<HomeMatch[]>([])
+
+  const [loadingMatches, setLoadingMatches] =
+    useState(true)
+
+  const [matchesError, setMatchesError] =
+    useState(false)
+
+
+  useEffect(() => {
+
+    if (loadingChampionships) {
+      return
+    }
+
+
+    if (!championships.length) {
+
+      setMatches([])
+      setLoadingMatches(false)
+
+      return
+    }
+
+
+    const controller =
+      new AbortController()
+
+
+    async function loadMatches() {
+
+      setLoadingMatches(true)
+      setMatchesError(false)
+
+
+      try {
+
+        const results =
+          await Promise.all(
+
+            championships.map(
+              async championship => {
+
+                const response =
+                  await fetch(
+                    `/api/campeonatos/${championship.id_campeonato}/partidas`,
+                    {
+                      cache:
+                        'no-store',
+
+                      signal:
+                        controller.signal
+                    }
+                  )
+
+
+                if (!response.ok) {
+                  throw new Error(
+                    'Erro ao carregar partidas.'
+                  )
+                }
+
+
+                const data =
+                  await response.json()
+
+
+                return data.map(
+                  (match: Omit<
+                    HomeMatch,
+                    'campeonato'
+                  >) => ({
+
+                    ...match,
+
+                    campeonato:
+                      championship.nome
+
+                  })
+                )
+              }
+            )
+
+          )
+
+
+        const now =
+          new Date().getTime()
+
+
+        const futureMatches =
+          results
+            .flat()
+            .filter(match => {
+
+              if (!match.data_hora) {
+                return false
+              }
+
+
+              const matchTime =
+                new Date(
+                  match.data_hora
+                ).getTime()
+
+
+              return matchTime >= now
+
+            })
+            .sort((a, b) => {
+
+              const dateA =
+                new Date(
+                  a.data_hora!
+                ).getTime()
+
+              const dateB =
+                new Date(
+                  b.data_hora!
+                ).getTime()
+
+
+              return dateA - dateB
+
+            })
+            .slice(0, 4)
+
+
+        setMatches(
+          futureMatches
+        )
+
+
+      } catch (error) {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setMatchesError(true)
+
+        }
+
+      } finally {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setLoadingMatches(false)
+
+        }
+
+      }
+    }
+
+
+    void loadMatches()
+
+
+    return () =>
+      controller.abort()
+
+
+  }, [
+    championships,
+    loadingChampionships
+  ])
+
+
+  const loading =
+    loadingChampionships ||
+    loadingMatches
+
+
+  return (
+
+    <section className="bg-[#f0f1e9] py-16 sm:py-[72px]">
+
+      <div className="section-wrap">
+
+
+        <SectionHeading
+          eyebrow="A bola vai rolar"
+          title="Próximos jogos"
+          href="/jogos"
+          linkLabel="Calendário completo"
+        />
+
+
+        {loading ? (
+
+          <p
+            role="status"
+            className="arena-empty"
+          >
+            Carregando próximos jogos...
+          </p>
+
+        ) : matches.length ? (
+
+          <div className="flex flex-col gap-3">
+
+            {matches.map(
+              (match, index) => (
+
+                <MatchCard
+                  key={match.id_partida}
+                  match={match}
+                  index={index}
+                />
+
+              )
+            )}
+
+          </div>
+
+        ) : (
+
+          <div className="arena-empty">
+
+            <CalendarDays className="mx-auto mb-4 size-8 text-[#829c38]" />
+
+            <p className="font-semibold text-[#445247]">
+
+              {matchesError
+                ? 'Não foi possível carregar os próximos jogos.'
+                : 'Nenhuma partida futura cadastrada no momento.'
+              }
+
+            </p>
+
+          </div>
+
+        )}
+
+
+        <div className="mt-6 flex justify-center sm:hidden">
+
+          <Link
+            href="/jogos"
+            className="inline-flex items-center gap-2 rounded-lg border border-[#d7dbce] px-4 py-3 text-[12px] font-bold text-[#34483a]"
+          >
+            Ver calendário completo
+
+            <ArrowRight className="size-4" />
+
+          </Link>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  )
 }
 
 function ResultsSection() {
-  return <section className="section-wrap pt-16 sm:pt-20">
-    <SectionHeading eyebrow="O que já aconteceu" title="Últimos resultados" href="/jogos" />
-    <div className="grid gap-3 md:grid-cols-3">{results.map((result) => <article key={`${result.home}-${result.away}`} className="result-card">
-      <div className="mb-4 flex items-center justify-between text-[9px] font-bold uppercase tracking-[.14em] text-[#8b9086]"><span>{result.tournament}</span><span>{result.date}</span></div>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center"><TeamMark mark={result.homeMark}/><span className="w-full truncate text-[11px] font-semibold text-[#566054]">{result.home}</span></div>
-        <div className="whitespace-nowrap rounded-md bg-[#f3f4ed] px-3 py-2 font-display text-[21px] font-bold tracking-[-.04em] text-[#23392c]">{result.score}</div>
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center"><TeamMark mark={result.awayMark}/><span className="w-full truncate text-[11px] font-semibold text-[#566054]">{result.away}</span></div>
-      </div>
-    </article>)}</div>
-  </section>
+
+  const {
+    records: championships,
+    loading: loadingChampionships
+  } = useHomeRecords<HomeChampionship>(
+    'campeonatos'
+  )
+
+
+  const [results, setResults] =
+    useState<HomeResult[]>([])
+
+  const [loadingResults, setLoadingResults] =
+    useState(true)
+
+  const [resultsError, setResultsError] =
+    useState(false)
+
+
+  useEffect(() => {
+
+    if (loadingChampionships) {
+      return
+    }
+
+
+    if (!championships.length) {
+
+      setResults([])
+      setLoadingResults(false)
+
+      return
+    }
+
+
+    const controller =
+      new AbortController()
+
+
+    async function loadResults() {
+
+      setLoadingResults(true)
+      setResultsError(false)
+
+
+      try {
+
+        const championshipResults =
+          await Promise.all(
+
+            championships.map(
+              async championship => {
+
+                const response =
+                  await fetch(
+                    `/api/campeonatos/${championship.id_campeonato}/partidas`,
+                    {
+                      cache: 'no-store',
+                      signal: controller.signal
+                    }
+                  )
+
+
+                if (!response.ok) {
+                  throw new Error(
+                    'Erro ao carregar partidas.'
+                  )
+                }
+
+
+                const matches =
+                  await response.json()
+
+
+                const matchesWithResults =
+                  await Promise.all(
+
+                    matches.map(
+                      async (match: {
+                        id_partida: number
+                        status?: string
+                      }) => {
+
+                        const scoreResponse =
+                          await fetch(
+                            `/api/partidas/${match.id_partida}/placar`,
+                            {
+                              cache: 'no-store',
+                              signal: controller.signal
+                            }
+                          )
+
+
+                        if (!scoreResponse.ok) {
+                          return null
+                        }
+
+
+                        const data =
+                          await scoreResponse.json()
+
+
+                        if (!data.resultado) {
+                          return null
+                        }
+
+
+                        return {
+
+                          id_partida:
+                            data.partida.id_partida,
+
+                          id_campeonato:
+                            data.partida.id_campeonato,
+
+                          time_a:
+                            data.partida.time_a,
+
+                          time_b:
+                            data.partida.time_b,
+
+                          data_hora:
+                            data.partida.data_hora,
+
+                          placar_time_a:
+                            Number(
+                              data.resultado.placar_time_a
+                            ),
+
+                          placar_time_b:
+                            Number(
+                              data.resultado.placar_time_b
+                            ),
+
+                          campeonato:
+                            championship.nome
+
+                        } satisfies HomeResult
+
+                      }
+                    )
+
+                  )
+
+
+                return matchesWithResults
+                  .filter(
+                    (
+                      result
+                    ): result is HomeResult =>
+                      result !== null
+                  )
+              }
+            )
+
+          )
+
+
+        const orderedResults =
+          championshipResults
+            .flat()
+            .sort((a, b) => {
+
+              const dateA =
+                a.data_hora
+                  ? new Date(
+                      a.data_hora
+                    ).getTime()
+                  : 0
+
+              const dateB =
+                b.data_hora
+                  ? new Date(
+                      b.data_hora
+                    ).getTime()
+                  : 0
+
+
+              return dateB - dateA
+
+            })
+            .slice(0, 3)
+
+
+        setResults(
+          orderedResults
+        )
+
+
+      } catch (error) {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setResultsError(true)
+
+        }
+
+      } finally {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setLoadingResults(false)
+
+        }
+
+      }
+
+    }
+
+
+    void loadResults()
+
+
+    return () =>
+      controller.abort()
+
+
+  }, [
+    championships,
+    loadingChampionships
+  ])
+
+
+  const loading =
+    loadingChampionships ||
+    loadingResults
+
+
+  return (
+
+    <section className="section-wrap pt-16 sm:pt-20">
+
+      <SectionHeading
+        eyebrow="O que já aconteceu"
+        title="Últimos resultados"
+        href="/jogos"
+      />
+
+
+      {loading ? (
+
+        <p
+          role="status"
+          className="arena-empty"
+        >
+          Carregando resultados...
+        </p>
+
+      ) : results.length ? (
+
+        <div className="grid gap-3 md:grid-cols-3">
+
+          {results.map(result => {
+
+            const homeMark =
+              result.time_a
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .slice(0, 3)
+                .toUpperCase()
+
+
+            const awayMark =
+              result.time_b
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .slice(0, 3)
+                .toUpperCase()
+
+
+            const date =
+              result.data_hora
+                ? new Date(
+                    result.data_hora
+                  ).toLocaleDateString(
+                    'pt-BR',
+                    {
+                      day: '2-digit',
+                      month: 'short'
+                    }
+                  ).replace('.', '')
+                : '—'
+
+
+            return (
+
+              <Link
+                key={result.id_partida}
+                href={`/partidas/${result.id_partida}`}
+                className="result-card"
+              >
+
+                <div className="mb-4 flex items-center justify-between text-[9px] font-bold uppercase tracking-[.14em] text-[#8b9086]">
+
+                  <span>
+                    {result.campeonato}
+                  </span>
+
+                  <span>
+                    {date}
+                  </span>
+
+                </div>
+
+
+                <div className="flex items-center justify-between gap-2">
+
+                  <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
+
+                    <TeamMark
+                      mark={homeMark}
+                    />
+
+                    <span className="w-full truncate text-[11px] font-semibold text-[#566054]">
+                      {result.time_a}
+                    </span>
+
+                  </div>
+
+
+                  <div className="whitespace-nowrap rounded-md bg-[#f3f4ed] px-3 py-2 font-display text-[21px] font-bold tracking-[-.04em] text-[#23392c]">
+
+                    {result.placar_time_a}
+                    {' — '}
+                    {result.placar_time_b}
+
+                  </div>
+
+
+                  <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
+
+                    <TeamMark
+                      mark={awayMark}
+                    />
+
+                    <span className="w-full truncate text-[11px] font-semibold text-[#566054]">
+                      {result.time_b}
+                    </span>
+
+                  </div>
+
+                </div>
+
+              </Link>
+
+            )
+
+          })}
+
+        </div>
+
+      ) : (
+
+        <div className="arena-empty">
+
+          <Trophy className="mx-auto mb-4 size-8 text-[#829c38]" />
+
+          <p className="font-semibold text-[#445247]">
+
+            {resultsError
+              ? 'Não foi possível carregar os resultados.'
+              : 'Nenhuma partida possui resultado registrado ainda.'
+            }
+
+          </p>
+
+        </div>
+
+      )}
+
+    </section>
+
+  )
 }
 
 function StandingsPreview() {
-  return <section className="rounded-xl border border-[#e7e8df] bg-white p-5 sm:p-6">
-    <div className="mb-5 flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#8c9186]">Copa Regional 2026</p><h3 className="mt-1 font-display text-xl font-bold tracking-[-.04em] text-[#20372b]">Classificação</h3></div><Link href="/classificacao" aria-label="Ver classificação completa" className="flex size-9 items-center justify-center rounded-full bg-[#f1f2eb] text-[#4e6048] transition hover:bg-[#e7ebda]"><ArrowUpRight className="size-4" /></Link></div>
-    <div className="overflow-x-auto">
-      <table className="standings-table w-full min-w-[490px] text-left">
-        <thead><tr><th>POS</th><th>TIME</th><th>PJ</th><th>V</th><th>E</th><th>D</th><th>SG</th><th>PTS</th></tr></thead>
-        <tbody>{standings.map((row) => <tr key={row.pos} className={row.pos === 1 ? 'leader-row' : ''}><td><span className={`rank-num ${row.pos === 1 ? 'rank-first' : ''}`}>{String(row.pos).padStart(2, '0')}</span></td><td><Link href="/times" className="flex items-center gap-2.5 font-semibold text-[#37463a] hover:text-[#71892e]"><TeamMark mark={row.mark} className="size-7 text-[8px]"/><span className="max-w-[130px] truncate">{row.team}</span></Link></td><td>{row.pj}</td><td>{row.v}</td><td>{row.e}</td><td>{row.d}</td><td>{row.sg}</td><td className="font-extrabold text-[#263e2e]">{row.pts}</td></tr>)}</tbody>
-      </table>
-    </div>
-    <Link href="/classificacao" className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-[#e7e8df] py-3 text-[11px] font-bold text-[#455642] transition hover:bg-[#f6f7f2]">Ver classificação completa <ArrowRight className="size-3.5" /></Link>
-  </section>
+
+  const {
+    records: championships,
+    loading: loadingChampionships
+  } = useHomeRecords<HomeChampionship>(
+    'campeonatos'
+  )
+
+
+  const [standings, setStandings] =
+    useState<HomeStanding[]>([])
+
+  const [championshipName, setChampionshipName] =
+    useState('Classificação')
+
+  const [loadingStandings, setLoadingStandings] =
+    useState(true)
+
+  const [standingsError, setStandingsError] =
+    useState(false)
+
+
+  useEffect(() => {
+
+    if (loadingChampionships) {
+      return
+    }
+
+
+    if (!championships.length) {
+
+      setStandings([])
+      setLoadingStandings(false)
+
+      return
+    }
+
+
+    const controller =
+      new AbortController()
+
+
+    async function loadStandings() {
+
+      setLoadingStandings(true)
+      setStandingsError(false)
+
+
+      try {
+
+        let found = false
+
+
+        for (
+          const championship
+          of championships
+        ) {
+
+          const response =
+            await fetch(
+              `/api/campeonatos/${championship.id_campeonato}/classificacao`,
+              {
+                cache: 'no-store',
+                signal: controller.signal
+              }
+            )
+
+
+          if (!response.ok) {
+            continue
+          }
+
+
+          const data =
+            await response.json()
+
+
+          if (
+            Array.isArray(data) &&
+            data.length
+          ) {
+
+            setStandings(
+              data.slice(0, 5)
+            )
+
+            setChampionshipName(
+              championship.nome
+            )
+
+            found = true
+
+            break
+
+          }
+
+        }
+
+
+        if (!found) {
+          setStandings([])
+        }
+
+
+      } catch (error) {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setStandingsError(true)
+
+        }
+
+      } finally {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setLoadingStandings(false)
+
+        }
+
+      }
+
+    }
+
+
+    void loadStandings()
+
+
+    return () =>
+      controller.abort()
+
+
+  }, [
+    championships,
+    loadingChampionships
+  ])
+
+
+  const loading =
+    loadingChampionships ||
+    loadingStandings
+
+
+  return (
+
+    <section className="rounded-xl border border-[#e7e8df] bg-white p-5 sm:p-6">
+
+      <div className="mb-5 flex items-center justify-between">
+
+        <div>
+
+          <p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#8c9186]">
+            {championshipName}
+          </p>
+
+          <h3 className="mt-1 font-display text-xl font-bold tracking-[-.04em] text-[#20372b]">
+            Classificação
+          </h3>
+
+        </div>
+
+
+        <Link
+          href="/classificacao"
+          aria-label="Ver classificação completa"
+          className="flex size-9 items-center justify-center rounded-full bg-[#f1f2eb] text-[#4e6048] transition hover:bg-[#e7ebda]"
+        >
+          <ArrowUpRight className="size-4" />
+        </Link>
+
+      </div>
+
+
+      {loading ? (
+
+        <p className="text-xs text-[#858a80]">
+          Carregando classificação...
+        </p>
+
+      ) : standings.length ? (
+
+        <>
+
+          <div className="overflow-x-auto">
+
+            <table className="standings-table w-full min-w-[490px] text-left">
+
+              <thead>
+
+                <tr>
+                  <th>POS</th>
+                  <th>TIME</th>
+                  <th>PJ</th>
+                  <th>V</th>
+                  <th>E</th>
+                  <th>D</th>
+                  <th>SG</th>
+                  <th>PTS</th>
+                </tr>
+
+              </thead>
+
+
+              <tbody>
+
+                {standings.map(row => {
+
+                  const mark =
+                    row.time
+                      .split(' ')
+                      .map(word => word[0])
+                      .join('')
+                      .slice(0, 3)
+                      .toUpperCase()
+
+
+                  return (
+
+                    <tr
+                      key={row.id_time}
+                      className={
+                        row.posicao === 1
+                          ? 'leader-row'
+                          : ''
+                      }
+                    >
+
+                      <td>
+
+                        <span
+                          className={`rank-num ${
+                            row.posicao === 1
+                              ? 'rank-first'
+                              : ''
+                          }`}
+                        >
+                          {String(
+                            row.posicao
+                          ).padStart(2, '0')}
+                        </span>
+
+                      </td>
+
+
+                      <td>
+
+                        <Link
+                          href={`/times/${row.id_time}`}
+                          className="flex items-center gap-2.5 font-semibold text-[#37463a] hover:text-[#71892e]"
+                        >
+
+                          <TeamMark
+                            mark={mark}
+                            className="size-7 text-[8px]"
+                          />
+
+                          <span className="max-w-[130px] truncate">
+                            {row.time}
+                          </span>
+
+                        </Link>
+
+                      </td>
+
+
+                      <td>{row.pj}</td>
+                      <td>{row.v}</td>
+                      <td>{row.e}</td>
+                      <td>{row.d}</td>
+
+                      <td>
+                        {row.sg > 0
+                          ? `+${row.sg}`
+                          : row.sg}
+                      </td>
+
+                      <td className="font-extrabold text-[#263e2e]">
+                        {row.pts}
+                      </td>
+
+                    </tr>
+
+                  )
+
+                })}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+
+          <Link
+            href="/classificacao"
+            className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-[#e7e8df] py-3 text-[11px] font-bold text-[#455642] transition hover:bg-[#f6f7f2]"
+          >
+            Ver classificação completa
+
+            <ArrowRight className="size-3.5" />
+          </Link>
+
+        </>
+
+      ) : (
+
+        <p className="text-xs leading-6 text-[#858a80]">
+
+          {standingsError
+            ? 'Não foi possível carregar a classificação.'
+            : 'Ainda não há classificação disponível.'
+          }
+
+        </p>
+
+      )}
+
+    </section>
+
+  )
 }
 
 function PlayerRanking() {
-  return <section className="rounded-xl border border-[#e7e8df] bg-white p-5 sm:p-6">
-    <div className="mb-5 flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#8c9186]">Quem balança a rede</p><h3 className="mt-1 font-display text-xl font-bold tracking-[-.04em] text-[#20372b]">Artilharia</h3></div><Link href="/jogadores" aria-label="Ver todos os jogadores" className="flex size-9 items-center justify-center rounded-full bg-[#f1f2eb] text-[#4e6048] transition hover:bg-[#e7ebda]"><ArrowUpRight className="size-4" /></Link></div>
-    <div className="flex flex-col">{scorers.map((player, index) => <div key={player.name} className="flex items-center gap-3 border-t border-[#eff0e9] py-3 first:border-0 first:pt-0 last:pb-0">
-      <span className={`w-5 text-center font-display text-lg font-bold ${index === 0 ? 'text-[#829d38]' : 'text-[#a7aaa1]'}`}>{index + 1}<sup className="text-[9px]">º</sup></span>
-      <div className={`player-avatar avatar-${player.color}`}>{player.initials}</div>
-      <div className="min-w-0 flex-1"><p className="truncate text-[12px] font-bold text-[#344438]">{player.name}</p><p className="mt-0.5 truncate text-[10px] text-[#858a80]">{player.team}</p></div>
-      <div className="text-right"><span className="font-display text-[21px] font-bold text-[#233b2c]">{player.goals}</span><span className="ml-1 text-[9px] text-[#898e84]">gols</span></div>
-    </div>)}</div>
-  </section>
+
+  const {
+    records: championships,
+    loading: loadingChampionships
+  } = useHomeRecords<HomeChampionship>(
+    'campeonatos'
+  )
+
+  const [scorers, setScorers] =
+    useState<HomeScorer[]>([])
+
+  const [championshipName, setChampionshipName] =
+    useState('Artilharia')
+
+  const [loadingScorers, setLoadingScorers] =
+    useState(true)
+
+  const [scorersError, setScorersError] =
+    useState(false)
+
+
+  useEffect(() => {
+
+    if (loadingChampionships) {
+      return
+    }
+
+    if (!championships.length) {
+
+      setScorers([])
+      setLoadingScorers(false)
+
+      return
+    }
+
+    const controller =
+      new AbortController()
+
+
+    async function loadScorers() {
+
+      setLoadingScorers(true)
+      setScorersError(false)
+
+      try {
+
+        let found = false
+
+        for (
+          const championship
+          of championships
+        ) {
+
+          const response =
+            await fetch(
+              `/api/campeonatos/${championship.id_campeonato}/artilharia`,
+              {
+                cache: 'no-store',
+                signal: controller.signal
+              }
+            )
+
+          if (!response.ok) {
+            continue
+          }
+
+          const data =
+            await response.json()
+
+          if (
+            Array.isArray(data) &&
+            data.length
+          ) {
+
+            setScorers(
+              data.slice(0, 3)
+            )
+
+            setChampionshipName(
+              championship.nome
+            )
+
+            found = true
+
+            break
+          }
+        }
+
+        if (!found) {
+          setScorers([])
+        }
+
+      } catch (error) {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setScorersError(true)
+
+        }
+
+      } finally {
+
+        if (
+          !controller.signal.aborted
+        ) {
+
+          setLoadingScorers(false)
+
+        }
+
+      }
+    }
+
+    void loadScorers()
+
+    return () =>
+      controller.abort()
+
+  }, [
+    championships,
+    loadingChampionships
+  ])
+
+
+  const loading =
+    loadingChampionships ||
+    loadingScorers
+
+
+  return (
+
+    <section className="rounded-xl border border-[#e7e8df] bg-white p-5 sm:p-6">
+
+      <div className="mb-5 flex items-center justify-between">
+
+        <div>
+
+          <p className="text-[9px] font-bold uppercase tracking-[.15em] text-[#8c9186]">
+            {championshipName}
+          </p>
+
+          <h3 className="mt-1 font-display text-xl font-bold tracking-[-.04em] text-[#20372b]">
+            Artilharia
+          </h3>
+
+        </div>
+
+        <Link
+          href="/jogadores"
+          aria-label="Ver todos os jogadores"
+          className="flex size-9 items-center justify-center rounded-full bg-[#f1f2eb] text-[#4e6048] transition hover:bg-[#e7ebda]"
+        >
+          <ArrowUpRight className="size-4" />
+        </Link>
+
+      </div>
+
+
+      {loading ? (
+
+        <p className="text-xs text-[#858a80]">
+          Carregando artilharia...
+        </p>
+
+      ) : scorers.length ? (
+
+        <div className="flex flex-col">
+
+          {scorers.map(
+            (player, index) => {
+
+              const initials =
+                player.jogador
+                  .split(' ')
+                  .map(word => word[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()
+
+              return (
+
+                <Link
+                  key={player.id_jogador}
+                  href={`/jogadores/${player.id_jogador}`}
+                  className="flex items-center gap-3 border-t border-[#eff0e9] py-3 first:border-0 first:pt-0 last:pb-0"
+                >
+
+                  <span
+                    className={`w-5 text-center font-display text-lg font-bold ${
+                      index === 0
+                        ? 'text-[#829d38]'
+                        : 'text-[#a7aaa1]'
+                    }`}
+                  >
+                    {index + 1}
+
+                    <sup className="text-[9px]">
+                      º
+                    </sup>
+                  </span>
+
+
+                  <div className="player-avatar avatar-lime">
+                    {initials}
+                  </div>
+
+
+                  <div className="min-w-0 flex-1">
+
+                    <p className="truncate text-[12px] font-bold text-[#344438]">
+                      {player.jogador}
+                    </p>
+
+                    <p className="mt-0.5 truncate text-[10px] text-[#858a80]">
+                      {player.time}
+                    </p>
+
+                  </div>
+
+
+                  <div className="text-right">
+
+                    <span className="font-display text-[21px] font-bold text-[#233b2c]">
+                      {player.pontos}
+                    </span>
+
+                    <span className="ml-1 text-[9px] text-[#898e84]">
+                      {player.pontos === 1
+                        ? 'gol'
+                        : 'gols'}
+                    </span>
+
+                  </div>
+
+                </Link>
+
+              )
+            }
+          )}
+
+        </div>
+
+      ) : (
+
+        <p className="text-xs leading-6 text-[#858a80]">
+
+          {scorersError
+            ? 'Não foi possível carregar a artilharia.'
+            : 'Ainda não há gols ou pontos registrados.'
+          }
+
+        </p>
+
+      )}
+
+    </section>
+
+  )
 }
 
 function TeamHighlights() {
@@ -445,31 +2304,426 @@ function HighlightsSection() {
   return <section className="section-wrap pt-16 sm:pt-20"><SectionHeading eyebrow="Números da competição" title="Destaques do campeonato" href="/jogadores" linkLabel="Ver estatísticas" /><div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]"><StandingsPreview/><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1"><PlayerRanking/><TeamHighlights/></div></div></section>
 }
 
-const searchEntries = [
-  { type: 'JOGADORES', name: 'Lucas Mendes', meta: 'Atlético Central · 9 gols', href: '/jogadores' },
-  { type: 'JOGADORES', name: 'Rafael Silva', meta: 'União FC · 7 gols', href: '/jogadores' },
-  { type: 'JOGADORES', name: 'Pedro Santos', meta: 'Vila Nova · 6 gols', href: '/jogadores' },
-]
-
 function SearchSection() {
-  const { records } = useHomeRecords<HomeTeam>('times')
-  const entries = useMemo(() => [...records.map(team => ({ type: 'TIMES', name: team.nome, meta: `${team.esporte}${team.cidade ? ` · ${team.cidade}` : ''}`, href: `/times/${team.id_time}` })), ...searchEntries], [records])
-  const [query, setQuery] = useState('')
-  const [focused, setFocused] = useState(false)
-  const filtered = useMemo(() => query.trim() ? entries.filter((entry) => `${entry.name} ${entry.meta}`.toLowerCase().includes(query.toLowerCase())) : entries, [query, entries])
-  const groups = ['TIMES', 'JOGADORES']
-  return <section id="buscar" className="section-wrap pt-16 sm:pt-20">
-    <div className="search-panel relative overflow-visible rounded-2xl bg-[#e9eddf] px-5 py-9 sm:px-10 sm:py-11">
-      <div className="mx-auto max-w-[660px] text-center"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#778664]">Tudo começa por aqui</p><h2 className="font-display text-[28px] font-bold tracking-[-.045em] text-[#1c3529] sm:text-[34px]">Encontre seu time ou jogador</h2><p className="mt-2 text-[12px] text-[#6e7868]">Pesquise entre as equipes e craques da competição.</p>
-        <div className="relative mt-6 text-left">
-          <label htmlFor="arena-search" className="sr-only">Pesquisar times ou jogadores</label><div className={`flex items-center gap-3 rounded-xl border bg-white px-4 shadow-[0_7px_22px_-15px_rgba(23,47,31,.28)] transition ${focused ? 'border-[#829b43] ring-4 ring-[#829b43]/10' : 'border-[#e3e6da]'}`}><Search className="size-[18px] shrink-0 text-[#73816b]"/><input id="arena-search" value={query} onChange={(event) => setQuery(event.target.value)} onFocus={() => setFocused(true)} onBlur={() => setTimeout(() => setFocused(false), 140)} onKeyDown={(event) => { if (event.key === 'Escape') { setFocused(false); (event.currentTarget as HTMLInputElement).blur() } }} placeholder="Pesquisar times ou jogadores..." autoComplete="off" className="h-[54px] min-w-0 flex-1 bg-transparent text-[13px] text-[#263b2f] outline-none placeholder:text-[#a1a59c]"/><span className="hidden rounded-md bg-[#f1f2ec] px-2 py-1 text-[9px] font-semibold text-[#7d8478] sm:block">BUSCA RÁPIDA</span></div>
-          {focused && <div role="listbox" aria-label="Sugestões de busca" className="absolute inset-x-0 top-[calc(100%+8px)] z-20 max-h-[320px] overflow-y-auto rounded-xl border border-[#e6e8df] bg-white p-2 shadow-[0_20px_45px_-24px_rgba(20,42,30,.35)]">
-            {filtered.length ? groups.map((group) => { const rows = filtered.filter((entry) => entry.type === group); return rows.length ? <div key={group}><p className="px-3 pb-1 pt-2 text-[9px] font-bold tracking-[.15em] text-[#979b91]">{group}</p>{rows.map((entry) => <Link key={entry.name} role="option" href={entry.href} onMouseDown={(event) => event.preventDefault()} onClick={() => { setQuery(entry.name); setFocused(false) }} className="flex items-center justify-between rounded-lg px-3 py-2.5 transition hover:bg-[#f4f5ee]"><span className="flex items-center gap-3"><span className="flex size-8 items-center justify-center rounded-lg bg-[#eef1e5] text-[#667b37]">{group === 'TIMES' ? <Shield className="size-4"/> : <Users className="size-4"/>}</span><span><span className="block text-[12px] font-bold text-[#374638]">{entry.name}</span><span className="mt-0.5 block text-[10px] text-[#858a80]">{entry.meta}</span></span></span><ArrowUpRight className="size-4 text-[#a0a597]"/></Link>)}</div> : null }) : <p className="px-3 py-5 text-center text-xs text-[#858a80]">Nenhum resultado por enquanto. Tente outro nome.</p>}
-          </div>}
+
+  type SearchTeam = {
+    id_time: number
+    nome: string
+    nome_abreviado?: string | null
+    cidade?: string | null
+    esporte?: string | null
+  }
+
+  type SearchPlayer = {
+    id_jogador: number
+    nome: string
+    posicao?: string | null
+  }
+
+
+  const [query, setQuery] =
+    useState('')
+
+  const [focused, setFocused] =
+    useState(false)
+
+  const [teams, setTeams] =
+    useState<SearchTeam[]>([])
+
+  const [players, setPlayers] =
+    useState<SearchPlayer[]>([])
+
+  const [loading, setLoading] =
+    useState(false)
+
+  const [error, setError] =
+    useState(false)
+
+
+  useEffect(() => {
+
+    const term =
+      query.trim()
+
+
+    if (!term) {
+
+      setTeams([])
+      setPlayers([])
+      setLoading(false)
+      setError(false)
+
+      return
+    }
+
+
+    const controller =
+      new AbortController()
+
+
+    const timer =
+      setTimeout(
+        async () => {
+
+          setLoading(true)
+          setError(false)
+
+
+          try {
+
+            const response =
+              await fetch(
+                `/api/busca?q=${encodeURIComponent(term)}`,
+                {
+                  cache: 'no-store',
+                  signal: controller.signal
+                }
+              )
+
+
+            if (!response.ok) {
+              throw new Error(
+                'Erro na busca.'
+              )
+            }
+
+
+            const data =
+              await response.json()
+
+
+            setTeams(
+              Array.isArray(data.times)
+                ? data.times
+                : []
+            )
+
+
+            setPlayers(
+              Array.isArray(data.jogadores)
+                ? data.jogadores
+                : []
+            )
+
+
+          } catch (error) {
+
+            if (
+              !controller.signal.aborted
+            ) {
+
+              setError(true)
+              setTeams([])
+              setPlayers([])
+
+            }
+
+          } finally {
+
+            if (
+              !controller.signal.aborted
+            ) {
+
+              setLoading(false)
+
+            }
+
+          }
+
+        },
+        300
+      )
+
+
+    return () => {
+
+      clearTimeout(timer)
+
+      controller.abort()
+
+    }
+
+  }, [query])
+
+
+  const hasResults =
+    teams.length > 0 ||
+    players.length > 0
+
+
+  return (
+
+    <section
+      id="buscar"
+      className="section-wrap relative z-30 pt-10 sm:pt-12"
+    >
+
+      <div className="search-panel relative z-30 overflow-visible rounded-2xl bg-[#e9eddf] px-5 py-9 sm:px-10 sm:py-11">
+
+        <div className="mx-auto max-w-[660px] text-center">
+
+
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#778664]">
+            Tudo começa por aqui
+          </p>
+
+
+          <h2 className="font-display text-[28px] font-bold tracking-[-.045em] text-[#1c3529] sm:text-[34px]">
+            Encontre seu time ou jogador
+          </h2>
+
+
+          <p className="mt-2 text-[12px] text-[#6e7868]">
+            Pesquise entre os times e jogadores cadastrados na plataforma.
+          </p>
+
+
+          <div className="relative mt-6 text-left">
+
+
+            <label
+              htmlFor="arena-search"
+              className="sr-only"
+            >
+              Pesquisar times ou jogadores
+            </label>
+
+
+            <div
+              className={`flex items-center gap-3 rounded-xl border bg-white px-4 shadow-[0_7px_22px_-15px_rgba(23,47,31,.28)] transition ${
+                focused
+                  ? 'border-[#829b43] ring-4 ring-[#829b43]/10'
+                  : 'border-[#e3e6da]'
+              }`}
+            >
+
+              <Search className="size-[18px] shrink-0 text-[#73816b]" />
+
+
+              <input
+                id="arena-search"
+                value={query}
+                onChange={event =>
+                  setQuery(
+                    event.target.value
+                  )
+                }
+                onFocus={() =>
+                  setFocused(true)
+                }
+                onBlur={() =>
+                  setTimeout(
+                    () =>
+                      setFocused(false),
+                    150
+                  )
+                }
+                onKeyDown={event => {
+
+                  if (
+                    event.key ===
+                    'Escape'
+                  ) {
+
+                    setFocused(false)
+
+                    event.currentTarget.blur()
+
+                  }
+
+                }}
+                placeholder="Pesquisar times ou jogadores..."
+                autoComplete="off"
+                className="h-[54px] min-w-0 flex-1 bg-transparent text-[13px] text-[#263b2f] outline-none placeholder:text-[#a1a59c]"
+              />
+
+
+              <span className="hidden rounded-md bg-[#f1f2ec] px-2 py-1 text-[9px] font-semibold text-[#7d8478] sm:block">
+                BUSCA RÁPIDA
+              </span>
+
+            </div>
+
+
+            {focused &&
+              query.trim() && (
+
+              <div
+                role="listbox"
+                aria-label="Resultados da busca"
+                className="absolute inset-x-0 top-[calc(100%+8px)] z-50 max-h-[340px] overflow-y-auto rounded-xl border border-[#e6e8df] bg-white p-2 shadow-[0_20px_45px_-24px_rgba(20,42,30,.35)]"
+              >
+
+
+                {loading ? (
+
+                  <p className="px-3 py-5 text-center text-xs text-[#858a80]">
+                    Pesquisando...
+                  </p>
+
+                ) : error ? (
+
+                  <p className="px-3 py-5 text-center text-xs text-[#a35b5b]">
+                    Não foi possível realizar a busca.
+                  </p>
+
+                ) : hasResults ? (
+
+                  <>
+
+
+                    {teams.length > 0 && (
+
+                      <div>
+
+                        <p className="px-3 pb-1 pt-2 text-[9px] font-bold tracking-[.15em] text-[#979b91]">
+                          TIMES
+                        </p>
+
+
+                        {teams.map(team => (
+
+                          <Link
+                            key={team.id_time}
+                            role="option"
+                            href={`/times/${team.id_time}`}
+                            onMouseDown={event =>
+                              event.preventDefault()
+                            }
+                            onClick={() =>
+                              setFocused(false)
+                            }
+                            className="flex items-center justify-between rounded-lg px-3 py-2.5 transition hover:bg-[#f4f5ee]"
+                          >
+
+                            <span className="flex items-center gap-3">
+
+                              <span className="flex size-8 items-center justify-center rounded-lg bg-[#eef1e5] text-[#667b37]">
+
+                                <Shield className="size-4" />
+
+                              </span>
+
+
+                              <span>
+
+                                <span className="block text-[12px] font-bold text-[#374638]">
+                                  {team.nome}
+                                </span>
+
+
+                                <span className="mt-0.5 block text-[10px] text-[#858a80]">
+
+                                  {team.esporte ||
+                                    'Esporte não informado'}
+
+                                  {team.cidade
+                                    ? ` · ${team.cidade}`
+                                    : ''}
+
+                                </span>
+
+                              </span>
+
+                            </span>
+
+
+                            <ArrowUpRight className="size-4 text-[#a0a597]" />
+
+                          </Link>
+
+                        ))}
+
+                      </div>
+
+                    )}
+
+
+                    {players.length > 0 && (
+
+                      <div>
+
+                        <p className="px-3 pb-1 pt-3 text-[9px] font-bold tracking-[.15em] text-[#979b91]">
+                          JOGADORES
+                        </p>
+
+
+                        {players.map(player => (
+
+                          <Link
+                            key={player.id_jogador}
+                            role="option"
+                            href={`/jogadores/${player.id_jogador}`}
+                            onMouseDown={event =>
+                              event.preventDefault()
+                            }
+                            onClick={() =>
+                              setFocused(false)
+                            }
+                            className="flex items-center justify-between rounded-lg px-3 py-2.5 transition hover:bg-[#f4f5ee]"
+                          >
+
+                            <span className="flex items-center gap-3">
+
+                              <span className="flex size-8 items-center justify-center rounded-lg bg-[#eef1e5] text-[#667b37]">
+
+                                <Users className="size-4" />
+
+                              </span>
+
+
+                              <span>
+
+                                <span className="block text-[12px] font-bold text-[#374638]">
+                                  {player.nome}
+                                </span>
+
+
+                                <span className="mt-0.5 block text-[10px] text-[#858a80]">
+
+                                  {player.posicao ||
+                                    'Jogador'}
+
+                                </span>
+
+                              </span>
+
+                            </span>
+
+
+                            <ArrowUpRight className="size-4 text-[#a0a597]" />
+
+                          </Link>
+
+                        ))}
+
+                      </div>
+
+                    )}
+
+                  </>
+
+                ) : (
+
+                  <p className="px-3 py-5 text-center text-xs text-[#858a80]">
+                    Nenhum time ou jogador encontrado.
+                  </p>
+
+                )}
+
+              </div>
+
+            )}
+
+          </div>
+
         </div>
+
       </div>
-    </div>
-  </section>
+
+    </section>
+
+  )
 }
 
 function OrganizerCTA() {
@@ -546,6 +2800,27 @@ export function Footer() {
 }
 
 export default function ArenaHome() {
-  return <div className="min-h-screen bg-[#fbfbf8] text-[#21372b]"><Header/><main><HeroSection/><ChampionshipsSection/><MatchesSection/><ResultsSection/><HighlightsSection/><SearchSection/><OrganizerCTA/></main><Footer/></div>
-}
+  return (
+    <div className="min-h-screen bg-[#fbfbf8] text-[#21372b]">
+      <Header />
 
+      <main>
+        <HeroSection />
+
+        <SearchSection />
+
+        <ChampionshipsSection />
+
+        <MatchesSection />
+
+        <ResultsSection />
+
+        <HighlightsSection />
+
+        <OrganizerCTA />
+      </main>
+
+      <Footer />
+    </div>
+  )
+}
